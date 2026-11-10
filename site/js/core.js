@@ -4,6 +4,11 @@
   const cfg = window.MCRC_CONFIG || {};
   const configured = /^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(cfg.SUPABASE_URL || '') &&
     !/YOUR-/i.test(cfg.SUPABASE_URL || '') && (cfg.SUPABASE_ANON_KEY || '').length > 20 && !/YOUR-/i.test(cfg.SUPABASE_ANON_KEY || '');
+  // Links in Supabase emails (invite, password reset, email change) land on the Site URL
+  // (usually index.html) with details in the #hash. Send them to login.html, which handles them.
+  if (/(^|[#&])(type=(invite|recovery|signup|magiclink|email_change)|error_description=|message=)/.test(location.hash) && !/login\.html$/.test(location.pathname)) {
+    location.replace(new URL('login.html', location.href).pathname + location.hash);
+  }
   const params = new URLSearchParams(location.search);
   if (params.get('demo') === '1') sessionStorage.setItem('mcrc_demo', '1');
   if (params.get('demo') === '0') sessionStorage.removeItem('mcrc_demo');

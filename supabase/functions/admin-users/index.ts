@@ -15,7 +15,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ROLES = ["site_admin", "head_judge", "judge"];
-const allowed = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://williamsmasters-code.github.io,http://localhost:8000")
+const allowed = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://williamsmasters-code.github.io,http://localhost:8000,http://127.0.0.1:8000,http://127.0.0.1:8766,http://127.0.0.1:8767")
   .split(",").map((s) => s.trim()).filter(Boolean);
 
 function cors(origin: string | null) {
@@ -108,6 +108,19 @@ Deno.serve(async (req) => {
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return out(400, { error: error.message });
       await log("reset_password", { id: user_id });
+      return out(200, { ok: true });
+    }
+    if (action === "update_email") {
+      // Site Admin changes someone's login email (their own included). Takes effect at once,
+      // no confirmation email; the auth.users trigger (07_email_sync.sql) updates profiles.email.
+      const email = String(body.email ?? "").trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return out(400, { error: "Type a valid email address." });
+      const { data: old } = await admin.from("profiles").select("email").eq("id", user_id).maybeSingle();
+      if (!old) return out(404, { error: "Unknown account." });
+      const { error } = await admin.auth.admin.updateUserById(user_id, { email, email_confirm: true });
+      if (error) return out(400, { error: /already|registered|exists/i.test(error.message) ? "Another account already uses that email." : error.message });
+      await admin.from("profiles").update({ email }).eq("id", user_id); // belt and braces; trigger does the same
+      await log("update_email", { id: user_id, from: old.email, to: email });
       return out(200, { ok: true });
     }
     if (action === "set_active") {

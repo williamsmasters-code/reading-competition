@@ -30,7 +30,7 @@
       return `<tr><td><strong>${esc(p.full_name || '(no name)')}</strong>${p.id === s.me.id ? ' <span class="chip f">You</span>' : ''}<br><span class="small">${esc(p.email || '')}</span></td>
         <td><span class="role ${esc(p.role || 'none')}">${esc(rl)}</span>${p.role === 'judge' && !seat ? '<br><span class="chip d">Not on panel</span>' : ''}</td>
         <td><span class="dot${p.active ? ' on' : ''}"></span>${p.active ? 'Active' : 'Deactivated'}</td>
-        <td><button class="mini" data-uedit="${esc(p.id)}">Edit</button><button class="mini" data-upw="${esc(p.id)}">Reset password</button>${p.id === s.me.id ? '' : `<button class="mini" data-uact="${esc(p.id)}">${p.active ? 'Deactivate' : 'Activate'}</button><button class="mini danger" data-udel="${esc(p.id)}">Delete</button>`}</td></tr>`;
+        <td><button class="mini" data-uedit="${esc(p.id)}">Edit</button><button class="mini" data-uemail="${esc(p.id)}">Change email</button><button class="mini" data-upw="${esc(p.id)}">Reset password</button>${p.id === s.me.id ? '' : `<button class="mini" data-uact="${esc(p.id)}">${p.active ? 'Deactivate' : 'Activate'}</button><button class="mini danger" data-udel="${esc(p.id)}">Delete</button>`}</td></tr>`;
     }).join('')}</tbody></table></div>`;
   }
   const roleOptions = (cur) => [{ value: 'judge', label: 'Judge' }, { value: 'head_judge', label: 'Head Judge' }, { value: 'site_admin', label: 'Site Admin' }, { value: '', label: 'No access' }].map((o) => o).filter((o) => o.value !== '' || cur !== undefined);
@@ -149,6 +149,12 @@
     const d = t.dataset;
     if (d.detail) { const [rid, jid] = d.detail.split('|'); MC.showDetail(s, rid, jid); return; }
     if (d.uedit) return editUser(d.uedit);
+    if (d.uemail) {
+      const p = s.profiles.find((x) => x.id === d.uemail);
+      const v = await MC.dialog({ title: 'Change login email for ' + (p.full_name || p.email), ok: 'Change email', html: '<p class="small">Now: <strong>' + esc(p.email) + '</strong>. The change is immediate (no confirmation email), so check the spelling. Tell the person to sign in with the new email; their password stays the same.</p>', fields: [{ name: 'email', label: 'New email', type: 'email', required: true, autocomplete: 'off' }] });
+      if (v) await run(t, () => api.adminUsers('update_email', { user_id: p.id, email: v.email }), 'Email changed.');
+      return;
+    }
     if (d.upw) {
       const p = s.profiles.find((x) => x.id === d.upw);
       const v = await MC.dialog({ title: 'Reset password for ' + (p.full_name || p.email), ok: 'Set new password', html: '<p class="small">Tell the person their new password. They can change it after signing in.</p>', fields: [{ name: 'pw', label: 'New password (at least 8 characters)', required: true, minlength: 8, autocomplete: 'off' }] });

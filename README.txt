@@ -29,6 +29,8 @@ TESTS (cd tests; npm install once)
   node export_test.mjs && python3 compare_export.py     Excel export fidelity
   python3 ui_smoke.py / ui_flow.py    Playwright demo-mode (serve /tmp/ghpages, port 8766)
   node mock_supabase.mjs + ui_live_mock.py   live-mode run against a local mock Supabase
+  ui_email_mock.py             email change, invite and password-reset links (same mock)
+  Demo tests add ?demo=1 so they never touch the live project even when config.js exists.
 
 SECURITY NOTES
   Only the public (publishable/anon) key is ever in the browser. The service/secret key

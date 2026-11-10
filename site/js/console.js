@@ -10,8 +10,19 @@
     try { me = await api.me(); } catch (e) { console.warn(e); }
     if (!me || !me.role || !me.active) { location.replace('login.html'); return; }
     if (!o.roles.includes(me.role)) { location.replace(homeFor(me.role)); return; }
-    $('#who').innerHTML = 'Signed in as <strong>' + esc(me.full_name || me.email) + '</strong> · <button type="button" class="linkish" id="pwbtn">Change password</button> · <button type="button" class="linkish" id="logout">Log out</button>';
+    $('#who').innerHTML = 'Signed in as <strong>' + esc(me.full_name || me.email) + '</strong> · <button type="button" class="linkish" id="embtn">Change email</button> · <button type="button" class="linkish" id="pwbtn">Change password</button> · <button type="button" class="linkish" id="logout">Log out</button>';
     $('#logout').onclick = async () => { await api.signOut(); location.href = 'index.html'; };
+    $('#embtn').onclick = async () => {
+      const v = await MC.dialog({ title: 'Change my login email', html: '<p class="small">Now: <strong>' + esc(me.email) + '</strong></p>' + (api.demo ? '' : '<p class="small">We will email a confirmation link. Your login email changes only after you click it (Supabase may also ask you to confirm from your current address).</p>'),
+        fields: [{ name: 'email', label: 'New email', type: 'email', required: true, autocomplete: 'email' }], ok: 'Change email' });
+      if (!v) return;
+      try {
+        const r = await api.changeEmail(v.email);
+        if (r && r.pending) MC.toast('Check ' + v.email.trim() + ' for a confirmation link. Until you click it, keep signing in with ' + me.email + '.');
+        else { MC.toast('Login email changed to ' + v.email.trim().toLowerCase() + '.'); me.email = v.email.trim().toLowerCase(); }
+        MC.refresh();
+      } catch (e) { MC.toast(e.message, true); }
+    };
     $('#pwbtn').onclick = async () => {
       const v = await MC.dialog({ title: 'Change my password', fields: [{ name: 'pw', label: 'New password (at least 8 characters)', type: 'password', required: true, minlength: 8, autocomplete: 'new-password' }], ok: 'Save password' });
       if (!v) return;

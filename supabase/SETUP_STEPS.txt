@@ -30,6 +30,7 @@ BEFORE YOU START
                         this file is kept out of git on purpose). CHECK FIRST: the xlsx
                         looks like the 2025 sheet, so these may not be the 2026 readers.
                         Skip it and add readers in the Site Admin console if needed.
+     07_email_sync.sql  lets login emails be changed later; keeps profiles.email in step
    All files are safe to run again (idempotent).
 
 4. CREATE THE 6 ACCOUNTS (Dashboard > Authentication > Users > Add user > Create new user,
@@ -44,8 +45,11 @@ BEFORE YOU START
    deactivate, delete). From the project folder, with the Supabase CLI:
      supabase login
      supabase link --project-ref <PROJECT-REF>
-     supabase secrets set ALLOWED_ORIGINS=https://williamsmasters-code.github.io
      supabase functions deploy admin-users --no-verify-jwt
+   (DONE Nov 10, 2026 via the Supabase connector, version 1, verify JWT off. ALLOWED_ORIGINS
+   is not set as a secret; the built-in default allows https://williamsmasters-code.github.io
+   plus local test addresses. To tighten it later: supabase secrets set
+   ALLOWED_ORIGINS=https://williamsmasters-code.github.io)
    (--no-verify-jwt is fine: the function checks the caller's sign-in itself and only
    lets an active Site Admin through. It reads the secret key from Supabase's own
    environment; the secret key is never put in the website.)
@@ -76,6 +80,17 @@ BEFORE YOU START
    free project does not pause. Also: Supabase emails a warning before pausing; if it
    pauses, Dashboard > project > "Resume project" (data is kept).
    REMINDER: open the dashboard on Nov 18-19 and confirm the project is Active.
+
+CHANGING A LOGIN EMAIL LATER
+   - Anyone signed in: top bar > "Change email". Supabase emails a confirmation link to the
+     new address (with "Secure email change" on, also to the current address; click both).
+     Until the link is clicked, keep signing in with the old email. Password stays the same.
+   - Site Admin, for anyone (own account included): Users & roles > "Change email". Takes
+     effect at once with no confirmation email, so check the spelling.
+   - Either way profiles.email updates automatically (07_email_sync.sql).
+   - Email links (invite, password reset, email change) need Site URL and Redirect URLs set
+     (step 2c) and the Pages site live; they open login.html, which asks for a new password
+     on invite / reset links.
 
 10. AFTER THE EVENT
    Head Judge finalizes (publishes). Site Admin or Head Judge downloads the per-judge Excel

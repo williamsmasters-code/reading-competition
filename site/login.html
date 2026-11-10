@@ -30,6 +30,15 @@
       <p class="warn" id="msg" role="alert" hidden></p>
       <div class="btnrow"><button class="btn" type="submit">Sign in</button> <a class="btn ghost" href="index.html">Back to home</a></div>
     </form>
+    <div id="setpw" hidden>
+      <h2 id="setpw-title">Choose your password</h2>
+      <form id="pwf" class="form" novalidate>
+        <label class="full">New password (at least 8 characters)<input type="password" name="pw" minlength="8" required autocomplete="new-password"></label>
+        <label class="full">Type it again<input type="password" name="pw2" minlength="8" required autocomplete="new-password"></label>
+        <p class="warn" id="pwmsg" role="alert" hidden></p>
+        <div class="btnrow"><button class="btn" type="submit">Save password</button></div>
+      </form>
+    </div>
     <p class="small" style="margin-top:.8rem">Forgot your password? Ask the Site Admin to reset it for you.</p>
     <div id="demo" hidden>
       <h3>Demo: sign in as an example account</h3>
@@ -46,7 +55,33 @@
   const { $, esc, api, homeFor, roleLabel } = window.MC;
   const f = $('#f'), msg = $('#msg');
   const go = (p) => { location.href = homeFor(p.role); };
-  api.me().then((p) => { if (p && p.role && p.active) go(p); }).catch(() => {});
+  // Read what a Supabase email link put in the address before supabase-js tidies it away.
+  const h = new URLSearchParams(location.hash.replace(/^#/, '') + '&' + location.search.replace(/^\?/, ''));
+  const linkType = h.get('type'), linkErr = h.get('error_description'), linkMsg = h.get('message');
+  const setPw = linkType === 'invite' || linkType === 'recovery';
+  if (linkErr) { msg.textContent = 'That email link did not work: ' + linkErr.replace(/\+/g, ' ') + '. Links expire after a while; ask the Site Admin to send a new one.'; msg.hidden = false; }
+  else if (linkMsg) { msg.textContent = linkMsg.replace(/\+/g, ' '); msg.hidden = false; msg.classList.add('note'); }
+  else if (linkType === 'email_change') { msg.textContent = 'Your new email is confirmed. Sign in with it from now on.'; msg.hidden = false; msg.classList.add('note'); }
+  if (setPw) {
+    $('#setpw').hidden = false; f.hidden = true;
+    $('#setpw-title').textContent = linkType === 'invite' ? 'Welcome! Choose your password' : 'Choose a new password';
+    const pf = $('#pwf');
+    pf.onsubmit = async (e) => {
+      e.preventDefault(); const pm = $('#pwmsg'); pm.hidden = true;
+      if (pf.pw.value.length < 8) { pm.textContent = 'Use at least 8 characters.'; pm.hidden = false; return; }
+      if (pf.pw.value !== pf.pw2.value) { pm.textContent = 'The two passwords are not the same.'; pm.hidden = false; return; }
+      const b = pf.querySelector('button'); b.disabled = true;
+      try {
+        if (!(await api.session())) throw new Error('This link has expired or was already used. Ask the Site Admin to send a new one.');
+        await api.changePassword(pf.pw.value);
+        const p = await api.me();
+        if (p && p.role && p.active) { window.MC.toast('Password saved.'); go(p); }
+        else { pm.textContent = 'Password saved. Your account does not have access yet: the Site Admin still needs to give you a role.'; pm.hidden = false; pm.classList.add('note'); }
+      } catch (err) { pm.textContent = err.message; pm.hidden = false; b.disabled = false; }
+    };
+  } else {
+    api.me().then((p) => { if (p && p.role && p.active) go(p); }).catch(() => {});
+  }
   f.onsubmit = async (e) => {
     e.preventDefault(); msg.hidden = true;
     const email = f.email.value.trim(), pw = f.password.value;

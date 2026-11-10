@@ -14,9 +14,9 @@ const PORT = +(process.env.MOCK_PORT || 54321), FN = process.env.FN_URL || 'http
 const db = new PGlite();
 await db.exec(fs.readFileSync('supabase_shim.sql', 'utf8'));
 await db.exec(`alter table auth.users add column if not exists created_at timestamptz default now();`);
-for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
+for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage', '07_email_sync']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
 await db.exec(`grant service_role to current_user;`).catch(() => {});
-const pw = new Map(), banned = new Set();
+const pw = new Map(), banned = new Set(), pendingEmail = new Map();
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = (u) => b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: u.id, email: u.email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600, iat: Math.floor(Date.now() / 1000) }) + '.mocksig';
 const userObj = (r) => ({ id: r.id, aud: 'authenticated', role: 'authenticated', email: r.email, email_confirmed_at: new Date().toISOString(), app_metadata: r.raw_app_meta_data || {}, user_metadata: r.raw_user_meta_data || {}, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), identities: [] });
@@ -79,6 +79,11 @@ const server = http.createServer(async (req, res) => {
       const r = (await db.query('select * from auth.users where id = $1', [w.sub])).rows[0];
       if (!r || banned.has(r.id)) return send(res, 401, { code: 401, msg: 'User not found', error_code: 'user_not_found' });
       if (req.method === 'PUT' && body && body.password) { if (body.password.length < 8) return send(res, 422, { code: 422, msg: 'Password should be at least 8 characters.', error_code: 'weak_password' }); pw.set(r.id, body.password); }
+      if (req.method === 'PUT' && body && body.email) { // like Supabase: pending until the link is clicked
+        if ((await db.query('select 1 from auth.users where lower(email)=lower($1) and id<>$2', [body.email, r.id])).rows.length) return send(res, 422, { code: 422, msg: 'A user with this email address has already been registered', error_code: 'email_exists' });
+        pendingEmail.set(r.id, body.email.toLowerCase()); log.push('EMAIL-REDIRECT ' + (u.searchParams.get('redirect_to') || ''));
+        return send(res, 200, Object.assign(userObj(r), { new_email: body.email.toLowerCase(), email_change_sent_at: new Date().toISOString() }));
+      }
       return send(res, 200, userObj(r));
     }
     if (p === '/auth/v1/logout') return send(res, 204, undefined);
@@ -93,11 +98,21 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'PUT') {
         const r = (await db.query('select * from auth.users where id = $1', [id])).rows[0]; if (!r) return send(res, 404, { msg: 'User not found' });
         if (body.password) pw.set(id, body.password);
+        if (body.email) { if ((await db.query('select 1 from auth.users where lower(email)=lower($1) and id<>$2', [body.email, id])).rows.length) return send(res, 422, { msg: 'A user with this email address has already been registered', error_code: 'email_exists' }); await db.query('update auth.users set email=lower($1) where id=$2', [body.email, id]); }
         if (body.ban_duration) { if (body.ban_duration === 'none') banned.delete(id); else banned.add(id); }
         return send(res, 200, userObj(r));
       }
       if (req.method === 'DELETE') { await db.query('delete from auth.users where id = $1', [id]); return send(res, 200, {}); }
     }
+    if (p === '/mock/confirm_email') { // test hook: "click" every pending confirmation link
+      for (const [id, e] of pendingEmail) await db.query('update auth.users set email=$1 where id=$2', [e, id]);
+      const n = pendingEmail.size; pendingEmail.clear(); return send(res, 200, { confirmed: n });
+    }
+    if (p === '/mock/token') { // test hook: a session like the one in an invite / reset link
+      const r = (await db.query('select * from auth.users where lower(email)=lower($1)', [u.searchParams.get('email')])).rows[0];
+      return send(res, 200, { access_token: jwt(r), refresh_token: 'refresh-' + r.id });
+    }
+    if (p === '/mock/log') return send(res, 200, log.filter((x) => x.startsWith('EMAIL')));
     // ---------------- edge function ----------------
     if (p.startsWith('/functions/v1/')) {
       const r = await fetch(FN + '/', { method: req.method, headers: { 'Content-Type': 'application/json', Authorization: req.headers.authorization || '', Origin: req.headers.origin || '' }, body: req.method === 'POST' ? raw : undefined });

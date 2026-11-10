@@ -209,8 +209,8 @@ begin
      and (new.role is distinct from old.role or (old.active and not new.active)) then
     raise exception 'You cannot change your own role or deactivate your own account.';
   end if;
-  if new.email is distinct from old.email and auth.uid() is not null then
-    new.email := old.email;   -- email is managed by Supabase Auth only
+  if new.email is distinct from old.email and auth.uid() is not null and pg_trigger_depth() <= 1 then
+    new.email := old.email;   -- email is managed by Supabase Auth only (07_email_sync.sql keeps it in step)
   end if;
   return new;
 end $$;

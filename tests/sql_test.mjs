@@ -15,11 +15,11 @@ async function q(sql, params) { return (await db.query(sql, params)).rows; }
 async function err(fn) { try { await fn(); return null; } catch (e) { return e.message; } }
 
 await db.exec(fs.readFileSync('supabase_shim.sql', 'utf8'));
-for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', 'seed_readers.sql']) {
+for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', 'seed_readers.sql']) {
   await db.exec(fs.readFileSync(S + f, 'utf8')); console.log('ran', f);
 }
 // re-run idempotency
-for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', 'seed_readers.sql']) {
+for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', 'seed_readers.sql']) {
   await db.exec(fs.readFileSync(S + f, 'utf8'));
 }
 console.log('re-ran all files (idempotent)');
@@ -195,5 +195,15 @@ await as(J[0], async () => {
 });
 await as(H, async () => { await q("select set_start_time('10:30')"); ok(true, 'Head Judge can set the start time'); });
 ok((await q('select count(*)::int n from audit_log'))[0].n > 10, 'audit log recorded actions');
+// ---- email changes (07_email_sync.sql) ----
+await as(J[0], async () => {
+  const e = await err(() => q("update profiles set email='hacker@x.test' where id=$1", [J[0]]));
+  const em = (await q('select email from profiles where id=$1', [J[0]]))[0].email;
+  ok(!!e || em === 'j1@x.test', 'a user cannot write profiles.email directly: ' + (e || 'ignored'));
+});
+await q("update auth.users set email='new.j1@x.test' where id=$1", [J[0]]);   // what Supabase Auth does on a confirmed change
+ok((await q('select email from profiles where id=$1', [J[0]]))[0].email === 'new.j1@x.test', 'auth email change is copied into profiles.email');
+await as(J[0], async () => { ok((await q('select email from profiles where id=$1', [J[0]]))[0].email === 'new.j1@x.test', 'user sees their new email'); });
+await q("update auth.users set email='j1@x.test' where id=$1", [J[0]]);
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -40,6 +40,16 @@
         return p ? Object.assign({ email: data.user.email }, p) : null;
       },
       async changePassword(pw) { const c = await sb(); chk(await c.auth.updateUser({ password: pw })); },
+      // Supabase emails a confirmation link (to the new address, and to the old one too when
+      // "Secure email change" is on). The email changes when the link is clicked; a database
+      // trigger then copies it into profiles.email.
+      async changeEmail(email) {
+        const c = await sb();
+        const back = new URL('login.html', location.href).href.split('#')[0].split('?')[0];
+        const d = chk(await c.auth.updateUser({ email: String(email).trim().toLowerCase() }, { emailRedirectTo: back }));
+        return { pending: !!(d && d.user && d.user.new_email) || (d && d.user && d.user.email !== String(email).trim().toLowerCase()) };
+      },
+      async session() { const c = await sb(); const { data } = await c.auth.getSession(); return data && data.session; },
       async loadAll() {
         const c = await sb();
         const me = await api.me();
@@ -230,6 +240,13 @@
       async signOut() { sessionStorage.removeItem(UKEY); },
       async me() { const m = me(); return m ? clone(m) : null; },
       async changePassword() { /* demo: nothing to do */ },
+      async changeEmail(email) {
+        const m = me(); const e = String(email).trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) fail('Type a valid email address.');
+        if (st.profiles.some((p) => p.id !== m.id && p.email.toLowerCase() === e)) fail('Another account already uses that email.');
+        st.profiles.find((p) => p.id === m.id).email = e; save(); return { pending: false };
+      },
+      async session() { return me() ? { demo: true } : null; },
       async loadAll() {
         const m = me(); if (!m) return null;
         const mgr = m.role === 'site_admin' || m.role === 'head_judge';
@@ -385,6 +402,12 @@
           save(); return { ok: true, id };
         }
         const p = st.profiles.find((x) => x.id === b.user_id) || fail('Unknown account.');
+        if (action === 'update_email') {
+          const e = String(b.email || '').trim().toLowerCase();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) fail('Type a valid email address.');
+          if (st.profiles.some((x) => x.id !== p.id && x.email.toLowerCase() === e)) fail('Another account already uses that email.');
+          p.email = e; save(); return { ok: true };
+        }
         if (action === 'reset_password') { if ((b.password || '').length < 8) fail('The password must be at least 8 characters.'); return { ok: true }; }
         if (action === 'set_active') { if (p.id === meId()) fail('You cannot deactivate your own account.'); p.active = !!b.active; save(); return { ok: true }; }
         if (action === 'delete_user') {

@@ -24,7 +24,7 @@ with sync_playwright() as p:
         ctx = b.new_context(viewport={'width': w, 'height': h}, accept_downloads=True)
         page = ctx.new_page(); watch(page, sz)
         # ---------- landing, mid-event ----------
-        page.goto(BASE + 'index.html?scenario=mid'); page.wait_for_timeout(800)
+        page.goto(BASE + 'index.html?demo=1&scenario=mid'); page.wait_for_timeout(800)
         txt = page.inner_text('body')
         ok('2026 Competition: November 20, 2026' in txt and 'Starts 9:00' in txt, f'{sz}: banner date + start time')
         ok('EXAMPLE DATA' in txt.upper(), f'{sz}: demo banner shown')

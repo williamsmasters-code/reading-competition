@@ -12,7 +12,7 @@ with sync_playwright() as p:
     for sz, (w, h) in SIZES.items():
         ctx = b.new_context(viewport={'width': w, 'height': h})
         page = ctx.new_page(); watch(page, sz)
-        page.goto(BASE + 'index.html?scenario=mid'); page.wait_for_timeout(800)
+        page.goto(BASE + 'index.html?demo=1&scenario=mid'); page.wait_for_timeout(800)
         for role, url in [('u-admin', 'admin.html'), ('u-head', 'head.html'), ('u-j2', 'judge.html')]:
             page.goto(BASE + 'login.html'); page.wait_for_timeout(300)
             page.click(f'button[data-id="{role}"]'); page.wait_for_url('**/' + url); page.wait_for_timeout(700)

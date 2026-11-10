@@ -4,7 +4,7 @@ import fs from 'fs';
 const db = new PGlite(); let fail = 0;
 const ok = (c, m) => { console.log(c ? '  PASS' : '  FAIL', m); if (!c) fail++; };
 await db.exec(fs.readFileSync('supabase_shim.sql', 'utf8'));
-for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
+for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage', '07_email_sync']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
 const emails = ['admin', 'headjudge', 'judge1', 'judge2', 'judge3', 'judge4'];
 for (const e of emails) await db.query(`insert into auth.users (email, raw_user_meta_data, raw_app_meta_data) values ($1, '{}', '{}')`, [`${e.toUpperCase()}@Example.org`]);
 ok((await db.query(`select count(*)::int n from profiles where role is null`)).rows[0].n === 6, 'dashboard accounts start with no access');
