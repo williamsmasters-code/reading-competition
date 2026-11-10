@@ -1,0 +1,82 @@
+MICHELLE COY READING COMPETITION - SETUP STEPS (going live)
+===========================================================
+Nothing below has been done yet. Each step that touches Supabase or GitHub needs
+Daniel's OK first. Do them in this order. Competition day: Friday, November 20, 2026.
+
+BEFORE YOU START
+- Supabase free plan: 2 active projects per account. Carriacou Connect already uses one,
+  so this takes the second free slot. (Paused projects do not count.)
+- Free projects PAUSE after about 1 week with too little activity. See step 9.
+
+1. CREATE THE SUPABASE PROJECT
+   supabase.com > New project. Name: reading-competition. Pick a strong DB password
+   and keep it in a password manager (it is not needed by the site).
+   Region: the closest one to Grenada (e.g. East US).
+
+2. AUTH SETTINGS (Dashboard > Authentication)
+   a. Sign In / Providers > Email: ON. "Allow new users to sign up": OFF
+      (accounts are made only by the Site Admin).
+   b. "Confirm email": can stay on; accounts made by the admin are pre-confirmed.
+   c. URL Configuration: Site URL = https://williamsmasters-code.github.io/reading-competition/
+      Redirect URLs: https://williamsmasters-code.github.io/reading-competition/**
+
+3. RUN THE SQL (Dashboard > SQL Editor > New query; paste each file, Run). In order:
+     01_schema.sql      tables, triggers, default criteria and settings
+     02_rls.sql         Row Level Security on every table
+     03_rpcs.sql        the judging / finalize / public landing functions
+     04_realtime.sql    live updates
+     05_storage.sql     public "event-photos" bucket, admin-only uploads
+     seed_readers.sql   the 6 readers from Judge1 Readers.xlsx (REAL student names;
+                        this file is kept out of git on purpose). CHECK FIRST: the xlsx
+                        looks like the 2025 sheet, so these may not be the 2026 readers.
+                        Skip it and add readers in the Site Admin console if needed.
+   All files are safe to run again (idempotent).
+
+4. CREATE THE 6 ACCOUNTS (Dashboard > Authentication > Users > Add user > Create new user,
+   tick "Auto Confirm User"): 1 Site Admin, 1 Head Judge, 4 Judges. Give each a temporary
+   password (8+ characters).
+
+5. GIVE THEM ROLES: open 06_assign_roles.sql, replace every CHANGE-ME email and name with
+   the real ones, run it. The last query should list 6 accounts with seats 0-4 (Head Judge
+   = seat 0, admin has no seat). New accounts get NO access until they have a role.
+
+6. DEPLOY THE ACCOUNT HELPER (Edge Function "admin-users": add user, reset password,
+   deactivate, delete). From the project folder, with the Supabase CLI:
+     supabase login
+     supabase link --project-ref <PROJECT-REF>
+     supabase secrets set ALLOWED_ORIGINS=https://williamsmasters-code.github.io
+     supabase functions deploy admin-users --no-verify-jwt
+   (--no-verify-jwt is fine: the function checks the caller's sign-in itself and only
+   lets an active Site Admin through. It reads the secret key from Supabase's own
+   environment; the secret key is never put in the website.)
+   Until this is deployed the site works, but the Users tab buttons that create, reset
+   or delete logins show "not switched on yet". Roles, names and the panel still work.
+
+7. CREATE THE GITHUB REPO AND PAGES (williamsmasters-code account)
+   a. New repository: reading-competition (public, required for free Pages).
+   b. Settings > Secrets and variables > Actions > Variables tab, add:
+        SUPABASE_URL       https://<PROJECT-REF>.supabase.co
+        SUPABASE_ANON_KEY  the Publishable key (sb_publishable_...) or legacy anon key
+      NEVER the Secret / service_role key.
+   c. Settings > Pages > Source: "GitHub Actions".
+   d. Push the local repo (git remote add origin ...; git push -u origin main).
+      .github/workflows/pages.yml writes config.js from those two variables and
+      publishes site/ to https://williamsmasters-code.github.io/reading-competition/
+      (config.js itself is never committed).
+
+8. SMOKE TEST ON THE LIVE SITE
+   - Landing page loads, shows "2026 Competition: November 20, 2026", no EXAMPLE DATA bar.
+   - Sign in as each role once and change the temporary password (top bar).
+   - Head Judge: set the start time; check it shows on the landing page.
+   - Do not open or score real readers before the day: the live site has no "reset"
+     button. Practise in demo mode instead (add ?demo=1 to the address).
+
+9. KEEP THE PROJECT AWAKE UNTIL NOV 20
+   .github/workflows/keepalive.yml calls the public landing function twice a day so the
+   free project does not pause. Also: Supabase emails a warning before pausing; if it
+   pauses, Dashboard > project > "Resume project" (data is kept).
+   REMINDER: open the dashboard on Nov 18-19 and confirm the project is Active.
+
+10. AFTER THE EVENT
+   Head Judge finalizes (publishes). Site Admin or Head Judge downloads the per-judge Excel
+   sheets (Finalization tab). The keep-alive workflow can then be deleted.

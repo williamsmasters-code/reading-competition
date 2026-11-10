@@ -1,0 +1,19 @@
+{
+  "name": "Michelle Coy Reading Competition",
+  "short_name": "Reading Comp",
+  "description": "Judging and results for the Michelle Coy Reading Competition, Carriacou and Petite Martinique.",
+  "id": "./",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#007A3D",
+  "background_color": "#FFF8E7",
+  "lang": "en",
+  "categories": ["education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

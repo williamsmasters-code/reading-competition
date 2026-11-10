@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#007A3D">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<title>Head Judge console | Michelle Coy Reading Competition</title>
+</head>
+<body data-page="head">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><h1><span aria-hidden="true">📖🌴</span> Head Judge Console</h1><span id="who"></span></header>
+<nav class="tabs" role="tablist" aria-label="Head Judge sections">
+  <button role="tab" data-tab="order" aria-controls="order">Running order</button>
+  <button role="tab" data-tab="score" aria-controls="score">My score sheet</button>
+  <button role="tab" data-tab="all" aria-controls="all">All judges' scores</button>
+  <button role="tab" data-tab="judges" aria-controls="judges">Judges</button>
+  <button role="tab" data-tab="final" aria-controls="final">Finalize &amp; publish</button>
+</nav>
+<main class="wrap wide" id="main">
+  <p class="statusline" id="statusline">Loading…</p>
+
+  <div id="order" role="tabpanel" aria-label="Running order">
+    <section class="card" aria-labelledby="h-event">
+      <h2 id="h-event">Event details</h2>
+      <p class="small">The competition date is <strong id="ev-date">November 20, 2026</strong>. Set the start time in Grenada time (AST). This is the only schedule shown on the public landing page; there is no venue listed.</p>
+      <form class="event-form" id="ev-form">
+        <label>Start time<input type="time" name="t" id="ev-time"></label>
+        <button type="submit" class="btn">Save</button>
+        <button type="button" class="btn ghost" id="ev-clear">Clear</button>
+      </form>
+      <p class="limit">Shown on the public landing page. The Site Admin can also change this.</p>
+    </section>
+    <section class="card" aria-labelledby="h-order">
+      <h2 id="h-order">Running order</h2>
+      <p class="small">Only you can open judging for a reader. Judges can score a reader only after judging is opened. Close a reader when they have finished, then open the next. One reader is open at a time.</p>
+      <div id="order-list"></div>
+    </section>
+  </div>
+
+  <section class="card" id="score" role="tabpanel" aria-labelledby="h-score" hidden>
+    <h2 id="h-score">My score sheet</h2>
+    <p class="small">Your own judging card, the same criteria the other judges use. Scores are 1 to 5 and save as you go. Turn in with <strong>Finalize my scores</strong> when the reader is done.</p>
+    <div class="form" style="grid-template-columns:1fr"><label>Reader<select id="hj-pick"></select></label></div>
+    <div id="sheet"></div>
+  </section>
+
+  <section class="card" id="all" role="tabpanel" aria-labelledby="h-all" hidden>
+    <h2 id="h-all">All judges' scores <span class="live" style="margin-left:.4rem">Live</span></h2>
+    <p class="small" style="margin-bottom:.5rem">Each cell is that judge's sheet total (tap it to see every score and comment). The reader's Total is the sum of all judges' totals. "—" means not scored yet. Drafts are still being edited.</p>
+    <div id="all-table"></div>
+    <h3>Reopen a turned-in score sheet</h3>
+    <p class="small">These buttons appear only for sheets a judge has already turned in. Reopening lets that judge edit again.</p>
+    <div id="reopen"></div>
+  </section>
+
+  <section class="card" id="judges" role="tabpanel" aria-labelledby="h-judges" hidden>
+    <h2 id="h-judges">Judges</h2>
+    <p class="limit">The Site Admin manages the judge panel. You can see who is scoring, but only the Site Admin can add or remove a judge.</p>
+    <p class="small">A reader's Total is the sum of all judges' totals on this panel. If the Site Admin adds or removes a judge, the possible total changes.</p>
+    <h3>On the panel now</h3>
+    <div id="panel-list"></div>
+  </section>
+
+  <section class="card" id="final" role="tabpanel" aria-labelledby="h-final" hidden>
+    <h2 id="h-final">Finalize &amp; publish</h2>
+    <div id="final-body"></div>
+  </section>
+</main>
+<footer class="footer"><div data-a2hs-slot></div></footer>
+<script src="config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script src="js/console.js"></script>
+<script src="js/scoresheet.js"></script>
+<script src="js/export.js"></script>
+<script src="js/head.js"></script>
+</body>
+</html>

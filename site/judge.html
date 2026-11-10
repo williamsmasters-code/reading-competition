@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#007A3D">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<title>Judge console | Michelle Coy Reading Competition</title>
+</head>
+<body data-page="judge">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><h1><span aria-hidden="true">📖🌴</span> Judge Console</h1><span id="who"></span></header>
+<nav class="tabs" role="tablist" aria-label="Judge sections">
+  <button role="tab" data-tab="readers" aria-controls="readers">My readers</button>
+  <button role="tab" data-tab="score" aria-controls="score">Score sheet</button>
+  <button role="tab" data-tab="turned" aria-controls="turned">Turned in</button>
+</nav>
+<main class="wrap" id="main">
+  <p class="statusline" id="statusline">Loading…</p>
+  <section class="card" id="readers" role="tabpanel" aria-labelledby="h-readers">
+    <h2 id="h-readers">My readers</h2>
+    <p class="small">You can score a reader only after the Head Judge opens judging for them. You see only your own scores, not other judges' scores or the ranking.</p>
+    <p class="limit">Pick a reader to score, or to look at a sheet you have already turned in. Readers marked <strong>Not opened yet</strong> stay locked until the Head Judge opens them.</p>
+    <div id="readers-list"></div>
+  </section>
+  <section class="card" id="score" role="tabpanel" aria-labelledby="h-score" hidden>
+    <h2 id="h-score">Score sheet</h2>
+    <div id="sheet"></div>
+  </section>
+  <section class="card" id="turned" role="tabpanel" aria-labelledby="h-turned" hidden>
+    <h2 id="h-turned">Turned in</h2>
+    <p class="small">Sheets you have turned in go to the Head Judge and are read-only. Ask the Head Judge if anything needs changing.</p>
+    <div id="turned-list"></div>
+  </section>
+</main>
+<footer class="footer"><div data-a2hs-slot></div></footer>
+<script src="config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script src="js/console.js"></script>
+<script src="js/scoresheet.js"></script>
+<script src="js/judge.js"></script>
+</body>
+</html>

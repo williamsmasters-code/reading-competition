@@ -1,0 +1,15 @@
+# secrets / real data - never commit
+site/config.js
+supabase/seed_readers.sql
+Judge1 Readers.xlsx
+*.live_creds.json
+.env
+supabase/functions/.env
+# planning material, drafts and generated output (not part of the app)
+layout-options/
+content/
+build-screenshots/
+export-test/
+tests/node_modules/
+tests/out/
+__pycache__/

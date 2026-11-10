@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#007A3D">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<title>Site Admin console | Michelle Coy Reading Competition</title>
+</head>
+<body data-page="admin">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar red"><h1><span aria-hidden="true">📖🌴</span> Site Admin Console</h1><span id="who"></span></header>
+<nav class="tabs" role="tablist" aria-label="Admin sections">
+  <button role="tab" data-tab="overview" aria-controls="overview">Overview</button>
+  <button role="tab" data-tab="users" aria-controls="users">Users &amp; roles</button>
+  <button role="tab" data-tab="judges" aria-controls="judges">Judges</button>
+  <button role="tab" data-tab="readers" aria-controls="readers">Readers</button>
+  <button role="tab" data-tab="criteria" aria-controls="criteria">Score sheet</button>
+  <button role="tab" data-tab="live" aria-controls="live">Live scores</button>
+  <button role="tab" data-tab="final" aria-controls="final">Finalization</button>
+  <button role="tab" data-tab="photos" aria-controls="photos">Photos</button>
+</nav>
+<main class="wrap wide" id="main">
+  <p class="statusline" id="statusline">Loading…</p>
+
+  <section class="card" id="overview" role="tabpanel" aria-labelledby="h-ov">
+    <h2 id="h-ov">Overview</h2>
+    <div class="stats" id="stats"></div>
+    <div class="event-box">
+      <h3 style="margin-top:0">Event details</h3>
+      <p class="small">The competition date is <strong id="ev-date">November 20, 2026</strong>. Set the start time in Grenada time (AST). This is the only schedule shown on the public landing page; there is no venue listed.</p>
+      <form class="event-form" id="ev-form">
+        <label>Start time<input type="time" name="t" id="ev-time"></label>
+        <button type="submit" class="btn">Save</button>
+        <button type="button" class="btn ghost" id="ev-clear">Clear</button>
+      </form>
+      <p class="limit">Shown on the public landing page. The Head Judge can also change this.</p>
+    </div>
+  </section>
+
+  <section class="card" id="users" role="tabpanel" aria-labelledby="h-users" hidden>
+    <h2 id="h-users">Users &amp; roles</h2>
+    <p class="limit">You create and reset the login accounts (1 Site Admin, 1 Head Judge, and as many Judges as needed). There is no public sign-up. Deactivated accounts can't see anything.</p>
+    <div id="users-table"></div>
+    <div class="btnrow"><button class="btn ghost" type="button" id="add-user">+ Add user</button></div>
+  </section>
+
+  <section class="card" id="judges" role="tabpanel" aria-labelledby="h-judges" hidden>
+    <h2 id="h-judges">Judges panel</h2>
+    <p class="small">This is the scoring panel. A reader's Total is the sum of all judges on this panel, so adding or removing a judge changes the possible total. Create the login first under Users &amp; roles, then add the person here. The Head Judge is always on the panel and can't be removed.</p>
+    <h3>On the panel now</h3>
+    <div id="panel-list"></div>
+    <h3>Add a judge</h3>
+    <form class="form boxed" id="panel-form">
+      <label class="full">Judge account<select name="judge" id="panel-pick"></select></label>
+      <div class="full"><button class="btn" type="submit">+ Add judge</button></div>
+    </form>
+  </section>
+
+  <section class="card" id="readers" role="tabpanel" aria-labelledby="h-readers" hidden>
+    <h2 id="h-readers">Readers</h2>
+    <p class="limit" id="readers-note"></p>
+    <div id="readers-table"></div>
+    <h3 id="rform-title">Add a reader</h3>
+    <form class="form" id="rform">
+      <input type="hidden" name="id">
+      <label>Student name<input name="student_name" maxlength="120" required autocomplete="off"></label>
+      <label>School<input name="school" maxlength="120" list="schools" autocomplete="off"></label>
+      <label>Item (reading)<input name="item" maxlength="200" autocomplete="off"></label>
+      <label>Date<input name="reading_date" type="date"></label>
+      <label>Round<select name="round"><option>Round 1</option><option>Round 2</option></select></label>
+      <label>District<input name="district" maxlength="40" autocomplete="off"></label>
+      <div class="full"><button class="btn" type="submit" id="rform-save">Save reader</button> <button class="btn ghost" type="button" id="rform-cancel">Clear form</button></div>
+    </form>
+    <datalist id="schools"></datalist>
+    <p class="small">Substitute keeps the reader's place in the running order and swaps in the new name. Removing a reader asks you to confirm first.</p>
+  </section>
+
+  <section class="card" id="criteria" role="tabpanel" aria-labelledby="h-crit" hidden>
+    <h2 id="h-crit">Score sheet criteria</h2>
+    <p class="small" id="crit-note"></p>
+    <ul class="crits" id="crit-list"></ul>
+    <form class="addrow" id="crit-form"><input name="text" maxlength="300" placeholder="New criterion, e.g. Was eye contact maintained?" aria-label="New criterion" required><button class="btn" type="submit">+ Add criterion</button></form>
+    <p class="warn" id="crit-warn" hidden>⚠️ Judges have already saved scores. Adding or removing a criterion now changes every judge's score sheet and the totals, so you'll be asked to confirm.</p>
+  </section>
+
+  <section class="card" id="live" role="tabpanel" aria-labelledby="h-live" hidden>
+    <h2 id="h-live">Live scores <span class="live" style="margin-left:.4rem">Live</span></h2>
+    <p class="small" style="margin-bottom:.5rem">Updates as judges score, including drafts they haven't turned in. Tap a score to see each criterion and comment. "—" means not scored yet. The Head Judge opens judging for each reader when they come up to read.</p>
+    <div id="live-table"></div>
+  </section>
+
+  <section class="card" id="final" role="tabpanel" aria-labelledby="h-final" hidden>
+    <h2 id="h-final">Finalization</h2>
+    <div id="final-body"></div>
+  </section>
+
+  <section class="card" id="photos" role="tabpanel" aria-labelledby="h-photos" hidden>
+    <h2 id="h-photos">Event photos</h2>
+    <p class="small">Photos you add here appear in a gallery on the public landing page. The gallery stays hidden until there is at least one photo. Photos are resized on this device before upload. Only add photos you have permission to share.</p>
+    <form class="form boxed" id="photo-form">
+      <label>Photo<input type="file" name="file" accept="image/jpeg,image/png,image/webp" required></label>
+      <label>Caption (optional)<input name="caption" maxlength="200"></label>
+      <div class="full"><button class="btn" type="submit">+ Add photo</button></div>
+    </form>
+    <div class="gallery" id="photo-list"></div>
+  </section>
+</main>
+<footer class="footer"><div data-a2hs-slot></div></footer>
+<script src="config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script src="js/console.js"></script>
+<script src="js/export.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

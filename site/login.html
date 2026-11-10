@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#007A3D">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<title>Judge login | Michelle Coy Reading Competition</title>
+</head>
+<body data-page="login">
+<header class="banner">
+  <div class="logo-mark" aria-hidden="true">📖🌴</div>
+  <h1>Judge login</h1>
+  <p class="sub">Michelle Coy Reading Competition</p>
+</header>
+<main class="wrap" id="main">
+  <section class="card login" aria-labelledby="lh">
+    <h2 id="lh">Sign in</h2>
+    <p class="small">For the Site Admin, Head Judge and Judges. Accounts are made by the Site Admin; there is no public sign-up.</p>
+    <form id="f" novalidate>
+      <label>Email<input type="email" name="email" autocomplete="username" required inputmode="email"></label>
+      <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="warn" id="msg" role="alert" hidden></p>
+      <div class="btnrow"><button class="btn" type="submit">Sign in</button> <a class="btn ghost" href="index.html">Back to home</a></div>
+    </form>
+    <p class="small" style="margin-top:.8rem">Forgot your password? Ask the Site Admin to reset it for you.</p>
+    <div id="demo" hidden>
+      <h3>Demo: sign in as an example account</h3>
+      <p class="small">Demo mode uses made-up EXAMPLE data. No password needed.</p>
+      <div class="demo-logins" id="demo-list"></div>
+    </div>
+  </section>
+</main>
+<script src="config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  const { $, esc, api, homeFor, roleLabel } = window.MC;
+  const f = $('#f'), msg = $('#msg');
+  const go = (p) => { location.href = homeFor(p.role); };
+  api.me().then((p) => { if (p && p.role && p.active) go(p); }).catch(() => {});
+  f.onsubmit = async (e) => {
+    e.preventDefault(); msg.hidden = true;
+    const email = f.email.value.trim(), pw = f.password.value;
+    if (!email || (!pw && !api.demo)) { msg.textContent = 'Type your email and password.'; msg.hidden = false; return; }
+    const b = f.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Signing in…';
+    try { go(await api.signIn(email, pw)); }
+    catch (err) { msg.textContent = err.message; msg.hidden = false; b.disabled = false; b.textContent = 'Sign in'; }
+  };
+  if (api.demo) {
+    $('#demo').hidden = false;
+    $('#demo-list').innerHTML = api.demoAccounts().map((a) => '<button type="button" class="btn ghost" data-id="' + esc(a.id) + '">' + esc(a.name) + ' · ' + esc(a.role === 'judge' ? (a.seat ? 'Judge ' + a.seat : 'Judge, not on panel') : roleLabel(a.role)) + '</button>').join('');
+    $('#demo-list').onclick = async (e) => { const b = e.target.closest('button[data-id]'); if (b) go(await api.demoSignInAs(b.dataset.id)); };
+  }
+})();
+</script>
+</body>
+</html>

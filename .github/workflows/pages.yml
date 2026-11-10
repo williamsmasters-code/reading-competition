@@ -1,0 +1,47 @@
+# Publishes the site/ folder to GitHub Pages (https://williamsmasters-code.github.io/reading-competition/).
+# config.js is NOT in git: this workflow writes it at deploy time from two repository
+# Variables (Settings > Secrets and variables > Actions > Variables):
+#   SUPABASE_URL       e.g. https://abcd1234.supabase.co
+#   SUPABASE_ANON_KEY  the Publishable key (sb_publishable_...) or legacy anon key. Public by design.
+# Never put the Secret / service_role key here.
+name: Deploy site to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Write config.js from repository variables
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning::SUPABASE_URL / SUPABASE_ANON_KEY variables are not set. The site will run in demo mode."
+          else
+            case "$SUPABASE_ANON_KEY" in sb_secret_*) echo "::error::That is a SECRET key. Use the publishable/anon key."; exit 1;; esac
+            printf 'window.MCRC_CONFIG = {\n  SUPABASE_URL: "%s",\n  SUPABASE_ANON_KEY: "%s"\n};\n' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > site/config.js
+          fi
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
