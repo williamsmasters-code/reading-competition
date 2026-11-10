@@ -56,20 +56,22 @@
         if (!me) return null;
         const isMgr = me.role === 'site_admin' || me.role === 'head_judge';
         const q = (t, sel, ord) => { let x = c.from(t).select(sel || '*'); if (ord) x = x.order(ord); return x; };
-        const [profiles, panel, readers, criteria, scores, sheets, event, fin, reqs, photos] = await Promise.all([
+        const [profiles, panel, readers, criteria, scores, sheets, event, fin, reqs, photos, items, rounds, districts] = await Promise.all([
           q('profiles', '*', 'full_name'), q('panel', '*', 'seat'), q('readers', '*', 'position'), q('criteria', '*', 'position'),
           q('scores'), q('sheets'), c.from('event_settings').select('*').eq('id', 1).maybeSingle(),
           c.from('finalization').select('*').eq('id', 1).maybeSingle(),
           isMgr ? q('revert_requests', '*', 'created_at') : Promise.resolve({ data: [] }),
-          q('photos', '*', 'position')
+          q('photos', '*', 'position'),
+          q('items', '*', 'position'), q('rounds', '*', 'number'), q('districts', '*', 'position')
         ]);
-        [profiles, panel, readers, criteria, scores, sheets, event, fin, reqs, photos].forEach((r) => { if (r.error) throw new Error(friendly(r.error)); });
+        [profiles, panel, readers, criteria, scores, sheets, event, fin, reqs, photos, items, rounds, districts].forEach((r) => { if (r.error) throw new Error(friendly(r.error)); });
         const ev = event.data || { event_date: '2026-11-20', start_time: null };
         return {
           me, profiles: profiles.data, panel: panel.data, readers: readers.data, criteria: criteria.data,
           scores: scores.data, sheets: sheets.data,
           event: { event_date: ev.event_date, start_time: t5(ev.start_time) },
           final: fin.data || { status: 'open' }, requests: reqs.data || [],
+          items: items.data || [], rounds: rounds.data || [], districts: districts.data || [],
           photos: photos.data.map((p) => Object.assign({ url: c.storage.from(BUCKET).getPublicUrl(p.storage_path).data.publicUrl }, p))
         };
       },
@@ -93,12 +95,21 @@
       decideRevert: (id, approve, note) => rpc('decide_revert', { p_request: id, p_approve: !!approve, p_note: note || '' }),
       async saveReader(r) {
         const c = await sb();
-        const row = { student_name: r.student_name, school: r.school, item: r.item, reading_date: r.reading_date || null, round: r.round, district: r.district };
-        if (r.id) return chk(await c.from('readers').update(row).eq('id', r.id).select('id'));
+        // Name / school / date are written directly (Site Admin). Round / District / Item go
+        // through set_reader_details (Head Judge or Site Admin); scores are never touched.
+        const row = { student_name: r.student_name, school: r.school, reading_date: r.reading_date || null };
+        if (r.id) {
+          chk(await c.from('readers').update(row).eq('id', r.id).select('id'));
+          if ('round_no' in r) await api.setReaderDetails(r.id, r.round_no, r.district_id || null, r.item_id || null);
+          return [{ id: r.id }];
+        }
         const max = chk(await c.from('readers').select('position').order('position', { ascending: false }).limit(1));
-        row.position = ((max[0] && max[0].position) || 0) + 1;
+        Object.assign(row, { position: ((max[0] && max[0].position) || 0) + 1, round_no: r.round_no || 1, district_id: r.district_id || null, item_id: r.item_id || null });
         return chk(await c.from('readers').insert(row).select('id'));
       },
+      setupChange: (action, args) => rpc('setup_change', { p_action: action, p_args: args || {} }),
+      setReaderDetails: (id, round, district, item) => rpc('set_reader_details', { p_reader: id, p_round: +round || 1, p_district: district || null, p_item: item || null }),
+      moveReader: (id, to) => rpc('move_reader', { p_reader: id, p_to: to }),
       async deleteReader(id) { const c = await sb(); chk(await c.from('readers').delete().eq('id', id)); },
       async swapPositions(table, a, b) { // a,b = {id, position}
         const c = await sb();
@@ -145,7 +156,7 @@
         MC.client().then((c) => {
           if (!c) return;
           ch = c.channel('mcrc-live');
-          ['readers', 'scores', 'sheets', 'panel', 'criteria', 'event_settings', 'finalization', 'revert_requests', 'photos', 'profiles']
+          ['readers', 'scores', 'sheets', 'panel', 'criteria', 'event_settings', 'finalization', 'revert_requests', 'photos', 'profiles', 'items', 'rounds', 'districts']
             .forEach((t) => ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, fire));
           ch.subscribe((s) => { if (onStatus) onStatus(s === 'SUBSCRIBED'); });
         });
@@ -163,7 +174,7 @@
   // Mirrors the database rules in supabase/03_rpcs.sql.
   // =====================================================================
   function demoApi() {
-    const KEY = 'mcrc_demo_state_v1', UKEY = 'mcrc_demo_uid';
+    const KEY = 'mcrc_demo_state_v2', UKEY = 'mcrc_demo_uid';
     const fail = (m) => { throw new Error(m); };
     const now = () => new Date().toISOString();
     const uid = () => 'x' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -182,7 +193,10 @@
       const panel = [{ judge_id: 'u-head', seat: 0 }, { judge_id: 'u-j1', seat: 1 }, { judge_id: 'u-j2', seat: 2 }, { judge_id: 'u-j3', seat: 3 }, { judge_id: 'u-j4', seat: 4 }];
       const schools = [["Example Reader A", "Mt Pleasant Gov't", 4.2], ["Example Reader B", "Dover Gov't", 3.8], ["Example Reader C", "Hillsborough Gov't", 4.7],
         ["Example Reader D", "Harvey Vale Gov't", 3.7], ["Example Reader E", "St Thomas Aquinas Catholic", 3.1], ["Example Reader F", "Our Lady of the Rosary Catholic", 4.55]];
-      const readers = schools.map((s, i) => ({ id: 'r' + (i + 1), position: i + 1, student_name: s[0], school: s[1], item: 'Just Harriet', reading_date: '2026-11-20', round: 'Round 1', district: 'ONE', judging_status: 'not_opened', _q: s[2] }));
+      const readers = schools.map((s, i) => ({ id: 'r' + (i + 1), position: i + 1, student_name: s[0], school: s[1], reading_date: '2026-11-20', round_no: 1, district_id: 'd1', item_id: null, judging_status: 'not_opened', _q: s[2] }));
+      const items = [{ id: 'i1', title: 'Just Harriet', position: 1 }, { id: 'i2', title: 'EXAMPLE: The Kite Festival', position: 2 }];
+      const rounds = [{ number: 1, name: '', default_item_id: 'i1' }];
+      const districts = [{ id: 'd1', name: 'ONE', position: 1 }];
       const criteria = CRITERIA.map((t, i) => ({ id: 'c' + (i + 1), position: i + 1, text: t }));
       const scores = [], sheets = [];
       const val = (r, j, c) => { const n = Math.sin((r + 1) * 12.9898 + (j + 1) * 78.233 + (c + 1) * 37.719) * 43758.5453; const f = n - Math.floor(n); return Math.max(1, Math.min(5, Math.round(readers[r]._q + (f - 0.5) * 1.6))); };
@@ -200,10 +214,21 @@
         fill(2, 0, 10, 'draft'); fill(2, 1, 10, 'draft'); fill(2, 3, 10, 'draft'); fill(2, 2, 8, 'draft');
       }
       readers.forEach((r) => { delete r._q; });
-      const st = { v: 1, scenario: scenario || 'mid', profiles, panel, readers, criteria, scores, sheets,
+      const st = { v: 2, scenario: scenario || 'mid', profiles, panel, readers, criteria, scores, sheets, items, rounds, districts,
         event: { event_date: '2026-11-20', start_time: '09:00' }, final: fin, requests: [], photos: [], audit: [] };
+      relabel(st);
       if (scenario === 'posted') publish(st, 'u-head');
       return st;
+    }
+    // Same as the reader_labels trigger in 08_setup.sql: derived Item / Round / District labels.
+    function relabel(s) {
+      s.readers.forEach((r) => {
+        const rd = s.rounds.find((x) => x.number === r.round_no) || {};
+        const it = s.items.find((x) => x.id === (r.item_id || rd.default_item_id));
+        const d = s.districts.find((x) => x.id === r.district_id);
+        r.round = String(rd.name || '').trim() || 'Round ' + r.round_no;
+        r.item = it ? it.title : ''; r.district = d ? d.name : '';
+      });
     }
     function publish(st, by) {
       const rk = MC.ranking(st.readers, st.panel, st.scores, st.criteria);
@@ -211,9 +236,9 @@
     }
     const params = new URLSearchParams(location.search);
     let st;
-    function load() { try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; } if (!st || st.v !== 1) { st = seed('mid'); save(true); } }
+    function load() { try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; } if (!st || st.v !== 2) { st = seed('mid'); save(true); } }
     const listeners = new Set();
-    function save(quiet) { localStorage.setItem(KEY, JSON.stringify(st)); if (!quiet) setTimeout(() => listeners.forEach((f) => f()), 0); }
+    function save(quiet) { relabel(st); localStorage.setItem(KEY, JSON.stringify(st)); if (!quiet) setTimeout(() => listeners.forEach((f) => f()), 0); }
     if (params.get('scenario')) { st = seed(params.get('scenario')); save(true); } else load();
     window.addEventListener('storage', (e) => { if (e.key === KEY) { load(); listeners.forEach((f) => f()); } });
 
@@ -256,7 +281,8 @@
           profiles: m.role === 'site_admin' ? st.profiles : m.role === 'head_judge' ? st.profiles.filter((p) => p.id === m.id || p.role === 'judge' || p.role === 'head_judge') : [m],
           panel: st.panel.slice().sort((a, b) => a.seat - b.seat), readers: st.readers.slice().sort(byPos), criteria: st.criteria.slice().sort(byPos),
           scores: st.scores.filter(mine), sheets: st.sheets.filter(mine), event: st.event, final: st.final,
-          requests: mgr ? st.requests : [], photos: st.photos
+          requests: mgr ? st.requests : [], photos: st.photos,
+          items: st.items.slice().sort(byPos), rounds: st.rounds.slice().sort((a, b) => a.number - b.number), districts: st.districts.slice().sort(byPos)
         });
       },
       async publicLanding() {
@@ -361,10 +387,71 @@
       async saveReader(r) {
         if (!isAdmin()) fail('Only the Site Admin can change readers.');
         if (!String(r.student_name || '').trim()) fail('Type the student\'s name.');
-        const row = { student_name: r.student_name.trim(), school: r.school || '', item: r.item || '', reading_date: r.reading_date || null, round: r.round || 'Round 1', district: r.district || '' };
-        if (r.id) Object.assign(reader(r.id), row);
-        else st.readers.push(Object.assign({ id: uid(), position: Math.max(0, ...st.readers.map((x) => x.position)) + 1, judging_status: 'not_opened' }, row));
+        const row = { student_name: r.student_name.trim(), school: r.school || '', reading_date: r.reading_date || null };
+        if (r.id) { Object.assign(reader(r.id), row); if ('round_no' in r) await api.setReaderDetails(r.id, r.round_no, r.district_id, r.item_id); }
+        else st.readers.push(Object.assign({ id: uid(), position: Math.max(0, ...st.readers.map((x) => x.position)) + 1, judging_status: 'not_opened', round_no: +r.round_no || 1, district_id: r.district_id || null, item_id: r.item_id || null }, row));
         save();
+      },
+      // ---- Competition setup (Head Judge or Site Admin); mirrors setup_change() in 08_setup.sql ----
+      async setupChange(action, a) {
+        if (!(isAdmin() || isHead())) fail('Only the Head Judge or the Site Admin can change the competition setup.');
+        a = a || {};
+        const rl = (n) => { const r = st.rounds.find((x) => x.number === n); return (r && String(r.name || '').trim()) || 'Round ' + n; };
+        const txt = (k, max, what) => { const v = String(a[k] || '').trim(); if (!v || v.length > max) fail('Type the ' + what + ' (up to ' + max + ' characters).'); return v; };
+        const next = (l) => Math.max(0, ...l.map((x) => x.position)) + 1;
+        let id = null;
+        if (action === 'add_item' || action === 'rename_item') {
+          const v = txt('title', 200, 'item title');
+          if (st.items.some((x) => x.title.toLowerCase() === v.toLowerCase() && x.id !== a.id)) fail('There is already an item called "' + v + '".');
+          if (action === 'add_item') { id = uid(); st.items.push({ id, title: v, position: next(st.items) }); st.rounds.forEach((r) => { if (!r.default_item_id) r.default_item_id = id; }); }
+          else (st.items.find((x) => x.id === a.id) || fail('That item no longer exists.')).title = v;
+        } else if (action === 'remove_item') {
+          const it = st.items.find((x) => x.id === a.id) || fail('That item no longer exists.');
+          const n = st.readers.filter((r) => r.item_id === it.id).length;
+          if (n) fail('"' + it.title + '" is set for ' + n + ' reader(s). Change them to another item first.');
+          const rd = st.rounds.find((r) => r.default_item_id === it.id);
+          if (rd) fail('"' + it.title + '" is the default item for ' + rl(rd.number) + '. Pick another default first.');
+          st.items = st.items.filter((x) => x !== it);
+        } else if (action === 'set_round_count') {
+          const n = +a.count; if (!(n >= 1 && n <= 20)) fail('Pick between 1 and 20 rounds.');
+          const mx = Math.max(1, ...st.readers.map((r) => r.round_no));
+          if (n < mx) fail(rl(mx) + ' still has readers. Move them to an earlier round first.');
+          const last = st.rounds.slice().sort((x, y) => y.number - x.number)[0];
+          for (let i = 1; i <= n; i++) if (!st.rounds.some((r) => r.number === i)) st.rounds.push({ number: i, name: '', default_item_id: last ? last.default_item_id : null });
+          st.rounds = st.rounds.filter((r) => r.number <= n);
+        } else if (action === 'set_round') {
+          const r = st.rounds.find((x) => x.number === +a.number) || fail('That round does not exist.');
+          if ('name' in a) { const v = String(a.name || '').trim(); if (v.length > 40) fail('Keep the round name to 40 characters.'); r.name = v; }
+          if ('default_item_id' in a) { if (a.default_item_id && !st.items.some((x) => x.id === a.default_item_id)) fail('That item no longer exists.'); r.default_item_id = a.default_item_id || null; }
+        } else if (action === 'add_district' || action === 'rename_district') {
+          const v = txt('name', 40, 'district name');
+          if (st.districts.some((x) => x.name.toLowerCase() === v.toLowerCase() && x.id !== a.id)) fail('There is already a district called "' + v + '".');
+          if (action === 'add_district') { id = uid(); st.districts.push({ id, name: v, position: next(st.districts) }); }
+          else (st.districts.find((x) => x.id === a.id) || fail('That district no longer exists.')).name = v;
+        } else if (action === 'remove_district') {
+          const d = st.districts.find((x) => x.id === a.id) || fail('That district no longer exists.');
+          const n = st.readers.filter((r) => r.district_id === d.id).length;
+          if (n) fail(d.name + ' has ' + n + ' reader(s). Move them to another district first.');
+          st.districts = st.districts.filter((x) => x !== d);
+        } else fail('Unknown setup change.');
+        log('setup_' + action, a); save(); return { ok: true, id };
+      },
+      async setReaderDetails(rid, round, district, item) {
+        if (!(isAdmin() || isHead())) fail('Only the Head Judge or the Site Admin can change the competition setup.');
+        const r = reader(rid);
+        if (!st.rounds.some((x) => x.number === +round)) fail('Pick a round.');
+        if (district && !st.districts.some((x) => x.id === district)) fail('That district no longer exists.');
+        if (item && !st.items.some((x) => x.id === item)) fail('That item no longer exists.');
+        r.round_no = +round; r.district_id = district || null; r.item_id = item || null;
+        log('set_reader_details', { reader: rid }); save();
+      },
+      async moveReader(rid, to) {
+        if (!(isAdmin() || isHead())) fail('Only the Head Judge or the Site Admin can change the competition setup.');
+        const r = reader(rid);
+        const rest = st.readers.slice().sort(byPos).filter((x) => x !== r);
+        to = Math.max(1, Math.min(+to || 1, rest.length + 1));
+        rest.splice(to - 1, 0, r); rest.forEach((x, i) => { x.position = i + 1; });
+        log('move_reader', { reader: rid, to }); save();
       },
       async deleteReader(id) {
         if (!isAdmin()) fail('Only the Site Admin can remove readers.');

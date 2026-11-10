@@ -14,7 +14,7 @@ const PORT = +(process.env.MOCK_PORT || 54321), FN = process.env.FN_URL || 'http
 const db = new PGlite();
 await db.exec(fs.readFileSync('supabase_shim.sql', 'utf8'));
 await db.exec(`alter table auth.users add column if not exists created_at timestamptz default now();`);
-for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage', '07_email_sync']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
+for (const f of ['01_schema', '02_rls', '03_rpcs', '04_realtime', '05_storage', '07_email_sync', '08_setup']) await db.exec(fs.readFileSync(`../supabase/${f}.sql`, 'utf8'));
 await db.exec(`grant service_role to current_user;`).catch(() => {});
 const pw = new Map(), banned = new Set(), pendingEmail = new Map();
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');

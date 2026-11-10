@@ -26,6 +26,8 @@ RUN LOCALLY (demo mode, made-up EXAMPLE data, nothing saved online)
 TESTS (cd tests; npm install once)
   node sql_test.mjs            all SQL on PGlite (Postgres 18) + RLS/RPC checks
   node assign_roles_test.mjs   06_assign_roles.sql
+  node setup_test.mjs          08_setup.sql (mapping of existing readers, permissions, no score changes)
+  python3 ui_setup.py          Setup tab, reorder, Edit details (demo mode; setup-*.png screenshots)
   node export_test.mjs && python3 compare_export.py     Excel export fidelity
   python3 ui_smoke.py / ui_flow.py    Playwright demo-mode (serve /tmp/ghpages, port 8766)
   node mock_supabase.mjs + ui_live_mock.py   live-mode run against a local mock Supabase

@@ -64,17 +64,36 @@
   function renderReaders(s) {
     $('#readers-note').innerHTML = `${s.readers.length} reader${s.readers.length === 1 ? '' : 's'}. The first readers were loaded from <strong>Judge1 Readers.xlsx</strong>. Use the form below to add one, or the buttons to edit, substitute or remove.`;
     $('#readers-table').innerHTML = `<div class="scroll"><table class="t"><thead><tr><th>#</th><th>Reader</th><th>School</th><th>Item · Round · District</th><th>Judging</th><th></th></tr></thead><tbody>${s.readers.map((r, i) => `<tr>
-      <td><button class="mini" data-rup="${esc(r.id)}" aria-label="Move ${esc(r.student_name)} up" ${i === 0 ? 'disabled' : ''}>↑</button><button class="mini" data-rdown="${esc(r.id)}" aria-label="Move ${esc(r.student_name)} down" ${i === s.readers.length - 1 ? 'disabled' : ''}>↓</button> ${i + 1}</td>
-      <td><strong>${esc(r.student_name)}</strong></td><td>${esc(r.school)}</td><td class="small">${esc(r.item)} · ${esc(r.round)} · ${esc(r.district)}<br>${esc(fmtDate(r.reading_date))}</td><td>${MC.statusChip(r.judging_status)}</td>
-      <td><button class="mini" data-redit="${esc(r.id)}">Edit</button><button class="mini" data-rsub="${esc(r.id)}">Substitute</button><button class="mini danger" data-rdel="${esc(r.id)}">Remove</button></td></tr>`).join('') || '<tr><td colspan="6">No readers yet.</td></tr>'}</tbody></table></div>`;
+      <td><span class="movebtns">${MC.orderControls(s, r, i).split('<button type="button" class="mini" data-rdetails')[0]}</span> ${i + 1}</td>
+      <td><strong>${esc(r.student_name)}</strong></td><td>${esc(r.school)}</td><td class="small">${MC.readerDetailsLine(s, r)}<br>${esc(fmtDate(r.reading_date))}</td><td>${MC.statusChip(r.judging_status)}</td>
+      <td><button class="mini" data-redit="${esc(r.id)}">Edit</button><button class="mini" data-rdetails="${esc(r.id)}">Edit details</button><button class="mini" data-rsub="${esc(r.id)}">Substitute</button><button class="mini danger" data-rdel="${esc(r.id)}">Remove</button></td></tr>`).join('') || '<tr><td colspan="6">No readers yet.</td></tr>'}</tbody></table></div>`;
     const schools = Array.from(new Set(s.readers.map((r) => r.school).filter(Boolean).concat(["St Thomas Aquinas Catholic", "Dover Gov't", "Mt Pleasant Gov't", "Hillsborough Gov't", "Our Lady of the Rosary Catholic", "Harvey Vale Gov't"])));
     $('#schools').innerHTML = schools.map((x) => `<option value="${esc(x)}">`).join('');
+    fillReaderSelects(s);
+  }
+  // Round / District pick-lists from the Setup tab. The Item comes from the round's default
+  // (a single reader's own item is set with Edit details).
+  function fillReaderSelects(s) {
+    const f = $('#rform'); const r = f.round_no.value, d = f.district_id.value;
+    f.round_no.innerHTML = s.rounds.map((x) => `<option value="${x.number}">${esc(MC.roundLabel(s, x.number))}</option>`).join('');
+    f.district_id.innerHTML = '<option value="">No district</option>' + s.districts.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+    if (r && s.rounds.some((x) => String(x.number) === r)) f.round_no.value = r;
+    if (d && s.districts.some((x) => x.id === d)) f.district_id.value = d;
+    showFormItem();
+  }
+  function showFormItem() {
+    const s = S(); if (!s) return; const f = $('#rform');
+    const rd = s.rounds.find((x) => String(x.number) === f.round_no.value) || {};
+    const own = f.item_id.value && s.items.find((x) => x.id === f.item_id.value);
+    const def = s.items.find((x) => x.id === rd.default_item_id);
+    $('#rform-item').innerHTML = own ? `Item: <strong>${esc(own.title)}</strong> (this reader's own item; change it with Edit details).`
+      : `Item: <strong>${esc(def ? def.title : 'none')}</strong> (the round's default; pick items and defaults on the Setup tab).`;
   }
   function resetReaderForm() {
     const f = $('#rform'); f.reset(); f.id.value = ''; $('#rform-title').textContent = 'Add a reader'; $('#rform-save').textContent = 'Save reader';
     const s = S(); const last = s && s.readers[s.readers.length - 1];
-    f.item.value = last ? last.item : ''; f.reading_date.value = (last && last.reading_date) || (s ? s.event.event_date : '');
-    f.round.value = last ? last.round : 'Round 1'; f.district.value = last ? last.district : '';
+    f.item_id.value = ''; f.reading_date.value = String((last && last.reading_date) || (s ? s.event.event_date : '')).slice(0, 10);
+    if (s) { fillReaderSelects(s); f.round_no.value = last ? String(last.round_no) : '1'; f.district_id.value = (last && last.district_id) || ''; showFormItem(); }
   }
   // ---------- criteria ----------
   function renderCriteria(s) {
@@ -119,7 +138,9 @@
 
   function render(s, first) {
     renderOverview(s); renderUsers(s); renderPanel(s); renderReaders(s); renderCriteria(s); renderLive(s); renderFinal(s); renderPhotos(s);
+    MC.renderSetup(s, $('#setup'), true);
     if (!first) return;
+    $('#rform-round').onchange = showFormItem;
     MC.tabs($('.tabs'));
     resetReaderForm();
     $('#ev-form').onsubmit = (e) => { e.preventDefault(); const t = $('#ev-time').value; run(e.submitter, () => api.setStartTime(t || null), t ? 'Start time saved.' : 'Start time cleared.'); };
@@ -129,6 +150,14 @@
     $('#rform').onsubmit = async (e) => {
       e.preventDefault(); const f = e.target; const v = Object.fromEntries(new FormData(f).entries());
       if (!v.student_name.trim()) { MC.toast('Type the student\'s name.', true); f.student_name.focus(); return; }
+      v.round_no = +v.round_no || 1;
+      if (v.id) {
+        const s = S(); const r = s.readers.find((x) => x.id === v.id);
+        if (r && v.round_no === r.round_no && (v.district_id || null) === (r.district_id || null)) { delete v.round_no; delete v.district_id; delete v.item_id; }
+        else if (r && v.round_no !== r.round_no && s.sheets.some((x) => x.reader_id === r.id && x.status === 'turned_in')) {
+          if (!(await MC.confirmBox('Change ' + r.student_name + "'s round?", '<p class="warn">Score sheets for ' + esc(r.student_name) + ' are already turned in. Changing the round changes what those sheets and the export show.</p><p>The scores themselves are kept exactly as they are.</p>', 'Change anyway', true))) return;
+        }
+      }
       await MC.withBusy(e.submitter, async () => { await api.saveReader(v); ok(v.id ? 'Reader updated.' : 'Reader added.'); resetReaderForm(); await MC.refresh(); });
     };
     $('#rform-cancel').onclick = resetReaderForm;
@@ -181,7 +210,7 @@
     }
     if (d.redit) {
       const r = s.readers.find((x) => x.id === d.redit); const f = $('#rform');
-      f.id.value = r.id; f.student_name.value = r.student_name; f.school.value = r.school; f.item.value = r.item; f.reading_date.value = r.reading_date || ''; f.round.value = r.round; f.district.value = r.district;
+      f.id.value = r.id; f.student_name.value = r.student_name; f.school.value = r.school; f.item_id.value = r.item_id || ''; f.reading_date.value = String(r.reading_date || '').slice(0, 10); f.round_no.value = String(r.round_no); f.district_id.value = r.district_id || ''; showFormItem();
       $('#rform-title').textContent = 'Edit ' + r.student_name; $('#rform-save').textContent = 'Save changes'; f.student_name.focus(); f.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -200,8 +229,6 @@
       return;
     }
     const move = async (list, id, dir, table) => { const i = list.findIndex((x) => x.id === id); const j = i + dir; if (j < 0 || j >= list.length) return; await run(t, () => api.swapPositions(table, list[i], list[j])); };
-    if (d.rup) return move(s.readers, d.rup, -1, 'readers');
-    if (d.rdown) return move(s.readers, d.rdown, 1, 'readers');
     if (d.cup) return move(s.criteria, d.cup, -1, 'criteria');
     if (d.cdown) return move(s.criteria, d.cdown, 1, 'criteria');
     if (d.cedit) {

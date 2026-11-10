@@ -31,7 +31,18 @@ BEFORE YOU START
                         looks like the 2025 sheet, so these may not be the 2026 readers.
                         Skip it and add readers in the Site Admin console if needed.
      07_email_sync.sql  lets login emails be changed later; keeps profiles.email in step
-   All files are safe to run again (idempotent).
+     08_setup.sql       Setup tab: Items, Rounds (count, optional names, default Item each),
+                        Districts, reader order (move_reader) and per-reader Edit details.
+                        Existing readers are mapped automatically (Just Harriet / Round 1 / ONE
+                        become the first Item, Round 1's default and the first District);
+                        nothing they show changes and no score is touched.
+   All files are safe to run again (idempotent). 08_setup.sql can be run before or after
+   seed_readers.sql. If 02_rls.sql is ever run again, run 08_setup.sql again after it.
+
+   STATUS (Nov 10, 2026): 01-05, seed_readers and 07 are applied on the live project
+   (vauivlcifbtrjfxkdspi). 08_setup.sql is written and tested locally but NOT applied yet;
+   it needs Daniel's OK. Apply 08 BEFORE pushing the site update that uses the Setup tab
+   (the new site reads the items / rounds / districts tables).
 
 4. CREATE THE 6 ACCOUNTS (Dashboard > Authentication > Users > Add user > Create new user,
    tick "Auto Confirm User"): 1 Site Admin, 1 Head Judge, 4 Judges. Give each a temporary

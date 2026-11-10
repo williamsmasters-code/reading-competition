@@ -99,7 +99,7 @@
         e.preventDefault();
         const vals = {};
         for (const f of (o.fields || [])) {
-          const el = form.elements[f.name];
+          const el = form.elements.namedItem(f.name);
           vals[f.name] = f.type === 'checkbox' ? el.checked : el.value.trim();
           if (f.required && !vals[f.name]) { const er = form.querySelector('[data-err]'); er.textContent = 'Please fill in "' + f.label + '".'; er.hidden = false; el.focus(); return; }
           if (f.minlength && vals[f.name].length < f.minlength) { const er = form.querySelector('[data-err]'); er.textContent = '"' + f.label + '" needs at least ' + f.minlength + ' characters.'; er.hidden = false; el.focus(); return; }

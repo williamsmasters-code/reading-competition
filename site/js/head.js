@@ -11,8 +11,8 @@
     const pub = s.final.status === 'published';
     $('#order-list').innerHTML = s.readers.length ? s.readers.map((r, i) => {
       const isOpen = r.judging_status === 'open';
-      return `<article class="rrow${isOpen ? ' now' : ''}"><div class="rinfo"><span class="ord" aria-hidden="true">${i + 1}</span><div class="rwho"><strong>${esc(r.student_name)}</strong>${isOpen ? ' <span class="nowtag">Now reading</span>' : ''}<span class="small">${esc(r.school)}</span></div></div>
-        <div class="acts">${MC.statusChip(r.judging_status)}${pub ? '' : isOpen ? `<button type="button" class="btn alt" data-close="${esc(r.id)}">Close judging</button>` : `<button type="button" class="btn" data-open="${esc(r.id)}">Open judging</button>`}</div></article>`;
+      return `<article class="rrow${isOpen ? ' now' : ''}"><div class="rinfo"><span class="ord" aria-hidden="true">${i + 1}</span><div class="rwho"><strong>${esc(r.student_name)}</strong>${isOpen ? ' <span class="nowtag">Now reading</span>' : ''}<span class="small">${esc(r.school)}</span><span class="small">${MC.readerDetailsLine(s, r)}</span></div></div>
+        <div class="acts"><span class="setupacts">${MC.orderControls(s, r, i)}</span>${MC.statusChip(r.judging_status)}${pub ? '' : isOpen ? `<button type="button" class="btn alt" data-close="${esc(r.id)}">Close judging</button>` : `<button type="button" class="btn" data-open="${esc(r.id)}">Open judging</button>`}</div></article>`;
     }).join('') : '<p class="placeholder">No readers yet. The Site Admin adds readers.</p>';
     if (pub) $('#order-list').insertAdjacentHTML('afterbegin', '<p class="posted">Results are posted, so judging is closed.</p>');
     $('#ev-date').textContent = fmtDate(s.event.event_date);
@@ -103,7 +103,7 @@
   }
 
   function render(s, first) {
-    renderOrder(s); renderSheet(s, first); renderAll(s); renderPanel(s); renderFinal(s);
+    renderOrder(s); MC.renderSetup(s, $('#setup'), false); renderSheet(s, first); renderAll(s); renderPanel(s); renderFinal(s);
     if (first) {
       MC.tabs($('.tabs'));
       $('#hj-pick').onchange = (e) => { pick = e.target.value; sheet.show(MC.state, pick); };

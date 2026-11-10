@@ -15,17 +15,17 @@ async function q(sql, params) { return (await db.query(sql, params)).rows; }
 async function err(fn) { try { await fn(); return null; } catch (e) { return e.message; } }
 
 await db.exec(fs.readFileSync('supabase_shim.sql', 'utf8'));
-for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', 'seed_readers.sql']) {
+for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', '08_setup.sql', 'seed_readers.sql']) {
   await db.exec(fs.readFileSync(S + f, 'utf8')); console.log('ran', f);
 }
 // re-run idempotency
-for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', 'seed_readers.sql']) {
+for (const f of ['01_schema.sql', '02_rls.sql', '03_rpcs.sql', '04_realtime.sql', '05_storage.sql', '07_email_sync.sql', '08_setup.sql', 'seed_readers.sql']) {
   await db.exec(fs.readFileSync(S + f, 'utf8'));
 }
 console.log('re-ran all files (idempotent)');
 ok((await q('select count(*)::int n from readers'))[0].n === 6, 'seed: 6 readers once, even after re-run');
 ok((await q('select count(*)::int n from criteria'))[0].n === 10, 'default 10 criteria once');
-ok((await q("select count(*)::int n from pg_publication_tables where pubname='supabase_realtime'"))[0].n === 10, 'realtime publication has 10 tables');
+ok((await q("select count(*)::int n from pg_publication_tables where pubname='supabase_realtime'"))[0].n === 13, 'realtime publication has 13 tables');
 const rlsOff = await q(`select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity`);
 ok(rlsOff.length === 0, 'RLS enabled on every public table ' + JSON.stringify(rlsOff));
 

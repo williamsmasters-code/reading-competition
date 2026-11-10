@@ -12,7 +12,7 @@ def style(c):
             a.horizontal, a.vertical, a.wrap_text, c.number_format)
 def dvs(ws):
     return sorted((d.type, (d.formula1 or '').replace(' ', ''), str(d.sqref), d.allow_blank) for d in ws.data_validations.dataValidation)
-def compare(path, expect_n):
+def compare(path, expect_n, mixed=False):
     o = openpyxl.load_workbook(ORIG); e = openpyxl.load_workbook(path)
     probs = []; checked = 0
     if len(e.worksheets) != expect_n: probs.append('sheet count %d != %d' % (len(e.worksheets), expect_n))
@@ -33,7 +33,7 @@ def compare(path, expect_n):
                 s1, s2 = style(c), style(c2)
                 if merged_inner and s1[8:12] == s2[8:12] and s1[6:8] == s2[6:8]: s1, s2 = s1[6:12], s2[6:12]   # hidden cell inside a merge: only fill + borders are visible
                 if s1 != s2: probs.append('%s %s style %s != %s' % (ws.title, c.coordinate, s2, s1))
-                if isinstance(c.value, str) and c.value.startswith('=') and c2.value != c.value: probs.append('%s %s formula %r != %r' % (ws.title, c.coordinate, c2.value, c.value))
+                if isinstance(c.value, str) and c.value.startswith('=') and c2.value != c.value and not (mixed and c.coordinate == 'J3' and isinstance(c2.value, str) and not c2.value.startswith('=')): probs.append('%s %s formula %r != %r' % (ws.title, c.coordinate, c2.value, c.value))
                 if c.coordinate[0] in 'AB' and c.value is not None and c.coordinate not in ('B4',) and c2.value != c.value and not (isinstance(c.value, float) and c2.value == int(c.value)):
                     probs.append('%s %s label %r != %r' % (ws.title, c.coordinate, c2.value, c.value))
         d1, d2 = dvs(src), dvs(ws)
@@ -53,8 +53,10 @@ def compare(path, expect_n):
     return len(probs)
 n = 0
 if len(sys.argv) > 2:
-    sys.exit(1 if compare(sys.argv[1], int(sys.argv[2])) else 0)
+    sys.exit(1 if compare(sys.argv[1], int(sys.argv[2]), len(sys.argv) > 3 and sys.argv[3] == 'mixed') else 0)
 n += compare('out/export_6_readers.xlsx', 6)
 n += compare('out/export_8_readers.xlsx', 8)
 n += compare('out/export_4_readers.xlsx', 4)
+# a reader in a different (named) round gets the round name typed into J3 instead of the =Sheet1!J3 formula
+n += compare('out/export_setup_mix.xlsx', 6, mixed=True)
 sys.exit(1 if n else 0)

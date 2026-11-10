@@ -42,7 +42,12 @@
       try {
         const s = await api.loadAll();
         if (!s) { location.replace('login.html'); return; }
-        state = s; MC.state = s; status(s); o.onState(s, first);
+        state = s; MC.state = s; status(s);
+        // keep keyboard focus on the same control when a live update redraws the page
+        const ae = document.activeElement; let sel = null;
+        if (ae && ae !== document.body && ae.tagName === 'BUTTON') { const k = Object.keys(ae.dataset)[0]; if (k) sel = `button[data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${CSS.escape(ae.dataset[k])}"]`; }
+        o.onState(s, first);
+        if (sel && !document.contains(ae)) { const n = Array.from(document.querySelectorAll(sel)).find((x) => x.offsetParent !== null && !x.disabled) || Array.from(document.querySelectorAll(sel)).find((x) => x.offsetParent !== null); if (n) n.focus(); }
       } catch (e) { console.warn(e); MC.toast(e.message, true); }
       finally { busy = false; if (again) { again = false; refresh(false); } }
     };

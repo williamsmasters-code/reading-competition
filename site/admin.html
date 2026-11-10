@@ -22,6 +22,7 @@
   <button role="tab" data-tab="users" aria-controls="users">Users &amp; roles</button>
   <button role="tab" data-tab="judges" aria-controls="judges">Judges</button>
   <button role="tab" data-tab="readers" aria-controls="readers">Readers</button>
+  <button role="tab" data-tab="setup" aria-controls="setup">Setup</button>
   <button role="tab" data-tab="criteria" aria-controls="criteria">Score sheet</button>
   <button role="tab" data-tab="live" aria-controls="live">Live scores</button>
   <button role="tab" data-tab="final" aria-controls="final">Finalization</button>
@@ -73,15 +74,18 @@
       <input type="hidden" name="id">
       <label>Student name<input name="student_name" maxlength="120" required autocomplete="off"></label>
       <label>School<input name="school" maxlength="120" list="schools" autocomplete="off"></label>
-      <label>Item (reading)<input name="item" maxlength="200" autocomplete="off"></label>
+      <input type="hidden" name="item_id">
       <label>Date<input name="reading_date" type="date"></label>
-      <label>Round<select name="round"><option>Round 1</option><option>Round 2</option></select></label>
-      <label>District<input name="district" maxlength="40" autocomplete="off"></label>
+      <label>Round<select name="round_no" id="rform-round"></select></label>
+      <label>District<select name="district_id" id="rform-district"></select></label>
+      <p class="small full" id="rform-item"></p>
       <div class="full"><button class="btn" type="submit" id="rform-save">Save reader</button> <button class="btn ghost" type="button" id="rform-cancel">Clear form</button></div>
     </form>
     <datalist id="schools"></datalist>
     <p class="small">Substitute keeps the reader's place in the running order and swaps in the new name. Removing a reader asks you to confirm first.</p>
   </section>
+
+  <div id="setup" role="tabpanel" aria-label="Competition setup" hidden></div>
 
   <section class="card" id="criteria" role="tabpanel" aria-labelledby="h-crit" hidden>
     <h2 id="h-crit">Score sheet criteria</h2>
@@ -119,6 +123,7 @@
 <script src="js/api.js"></script>
 <script src="js/console.js"></script>
 <script src="js/export.js"></script>
+<script src="js/setup.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

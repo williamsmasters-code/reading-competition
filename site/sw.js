@@ -4,11 +4,11 @@
 // NEVER caches Supabase, auth, realtime, storage, CDN or any other cross-origin response,
 // never config.js, and never any non-GET request: those requests are not intercepted at all,
 // so scores, results and sign-ins always come fresh from Supabase.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const C = 'mcrc-shell-' + VERSION, OFF = './offline.html';
 const SHELL = ['./', './index.html', './login.html', './judge.html', './head.html', './admin.html', './offline.html',
   './css/style.css', './js/core.js', './js/api.js', './js/console.js', './js/scoresheet.js', './js/judge.js', './js/head.js', './js/admin.js',
-  './js/landing.js', './js/export.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png', './icons/apple-touch-icon.png'];
+  './js/landing.js', './js/export.js', './js/setup.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(C).then((c) => Promise.all(SHELL.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => {}))))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('mcrc-') && k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 const isShell = (u) => { const base = new URL('./', self.registration.scope).pathname; const p = u.pathname.startsWith(base) ? './' + u.pathname.slice(base.length) : null; return p !== null && SHELL.includes(p); };
