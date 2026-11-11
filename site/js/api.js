@@ -486,7 +486,7 @@
           const id = uid(); st.profiles.push({ id, full_name: b.full_name, email: b.email.toLowerCase(), role: b.role, active: true, created_at: now() });
           if (b.role === 'head_judge') st.panel.push({ judge_id: id, seat: 0 });
           if (b.role === 'judge' && b.add_to_panel) st.panel.push({ judge_id: id, seat: Math.max(0, ...st.panel.map((x) => x.seat)) + 1 });
-          save(); return { ok: true, id };
+          save(); return { ok: true, id, email_sent: b.send_email !== false };
         }
         const p = st.profiles.find((x) => x.id === b.user_id) || fail('Unknown account.');
         if (action === 'update_email') {
@@ -495,7 +495,7 @@
           if (st.profiles.some((x) => x.id !== p.id && x.email.toLowerCase() === e)) fail('Another account already uses that email.');
           p.email = e; save(); return { ok: true };
         }
-        if (action === 'reset_password') { if ((b.password || '').length < 8) fail('The password must be at least 8 characters.'); return { ok: true }; }
+        if (action === 'reset_password') { if ((b.password || '').length < 8) fail('The password must be at least 8 characters.'); return { ok: true, email_sent: b.send_email !== false }; }
         if (action === 'set_active') { if (p.id === meId()) fail('You cannot deactivate your own account.'); p.active = !!b.active; save(); return { ok: true }; }
         if (action === 'delete_user') {
           if (p.id === meId()) fail('You cannot delete your own account.');

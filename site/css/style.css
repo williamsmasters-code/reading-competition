@@ -122,7 +122,7 @@ button.cellbtn:hover{border-color:var(--line)}
 .form input,.form select,.form textarea,.event-form input,.addrow input,.login input{width:100%;max-width:100%;min-width:0;min-height:48px;border:2px solid #D4A84B;border-radius:.75rem;padding:.45rem .6rem;font:inherit;background:#fff;color:var(--ink)}
 .form .full{grid-column:1/-1}
 .form .chk,.chk{flex-direction:row;align-items:center;gap:.5rem;font-weight:800}
-.chk input{width:24px;height:24px;min-height:0}
+.chk input{width:24px;height:24px;min-height:0;flex:0 0 24px}
 @media(min-width:600px){.form{grid-template-columns:1fr 1fr}}
 .event-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem;margin:.55rem 0}
 .event-form input[type=time]{min-width:10.5rem;width:auto}
@@ -193,6 +193,7 @@ ul.crits{list-style:none}
 /* modal */
 .modal{position:fixed;inset:0;background:rgba(42,26,10,.55);display:flex;align-items:center;justify-content:center;z-index:30;padding:1rem}
 .modal-card{background:var(--cream);border:3px solid var(--gold);border-radius:1.25rem;padding:1.25rem 1.3rem;max-width:32rem;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 0 rgba(202,160,60,.35)}
+.modal-card p+p{margin-top:.5rem}
 .modal-card h2{color:var(--red);font-size:1.25rem;margin-bottom:.5rem}
 .modal-card .form{margin-top:.6rem}
 .modal-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}

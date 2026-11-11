@@ -35,14 +35,27 @@
   }
   const roleOptions = (cur) => [{ value: 'judge', label: 'Judge' }, { value: 'head_judge', label: 'Head Judge' }, { value: 'site_admin', label: 'Site Admin' }, { value: '', label: 'No access' }].map((o) => o).filter((o) => o.value !== '' || cur !== undefined);
   async function addUser() {
-    const v = await MC.dialog({ title: 'Add a user', ok: 'Create account', html: '<p class="small">Give the person their email and this temporary password. They can change it after signing in.</p>', fields: [
+    const v = await MC.dialog({ title: 'Add a user', ok: 'Create account', html: MAIL_NOTE('starting'), fields: [
       { name: 'full_name', label: 'Full name', required: true, maxlength: 100 },
       { name: 'email', label: 'Email', type: 'email', required: true, autocomplete: 'off' },
       { name: 'role', label: 'Role', type: 'select', value: 'judge', options: roleOptions() },
-      { name: 'password', label: 'Temporary password (at least 8 characters)', type: 'text', required: true, minlength: 8, autocomplete: 'off' },
+      { name: 'password', label: 'Starting password (at least 8 characters)', type: 'text', required: true, minlength: 8, autocomplete: 'off' },
+      { name: 'send_email', label: 'Send login email (site link, login email, role, optional "Choose your own password" link)', type: 'checkbox', value: true },
       { name: 'panel', label: 'Also add to the judges panel (Judges only)', type: 'checkbox', value: true }] });
     if (!v) return;
-    await run(null, () => api.adminUsers('create_user', { full_name: v.full_name, email: v.email, role: v.role, password: v.password, add_to_panel: v.role === 'judge' && v.panel }), 'Account created for ' + v.full_name + '.');
+    await MC.withBusy(null, async () => {
+      const r = await api.adminUsers('create_user', { full_name: v.full_name, email: v.email, role: v.role, password: v.password, add_to_panel: v.role === 'judge' && v.panel, send_email: v.send_email });
+      await mailResult(r, 'Account created for ' + v.full_name + '.', v.email); await MC.refresh();
+    });
+  }
+  // Shared wording for the Add user and Reset password dialogs.
+  const MAIL_NOTE = (kind) => `<p class="small">The ${kind === 'starting' ? 'starting' : 'new'} password works straight away and keeps working until the person changes it. Tell them the password yourself (in person or by phone); it is <strong>never</strong> put in the email.</p>
+    <p class="small">"Send login email" sends one email from Supabase with the site link, their login email, their role and an optional link to choose their own password. Supabase's free email only sends about 2 emails an hour, so if the limit is reached, untick it and just tell them.</p>`;
+  async function mailResult(r, done, email) {
+    if (r && r.warning) {
+      await MC.dialog({ title: 'Saved, but no email was sent', cancel: false, ok: 'OK', html: '<p class="warn">' + esc(r.warning) + '</p>' });
+      MC.toast(done);
+    } else MC.toast(done + (r && r.email_sent ? ' Login email sent to ' + email + '.' + (api.demo ? ' (Demo: no real email.)' : '') : ''));
   }
   async function editUser(id) {
     const s = S(); const p = s.profiles.find((x) => x.id === id);
@@ -186,8 +199,10 @@
     }
     if (d.upw) {
       const p = s.profiles.find((x) => x.id === d.upw);
-      const v = await MC.dialog({ title: 'Reset password for ' + (p.full_name || p.email), ok: 'Set new password', html: '<p class="small">Tell the person their new password. They can change it after signing in.</p>', fields: [{ name: 'pw', label: 'New password (at least 8 characters)', required: true, minlength: 8, autocomplete: 'off' }] });
-      if (v) await run(t, () => api.adminUsers('reset_password', { user_id: p.id, password: v.pw }), 'Password reset.');
+      const v = await MC.dialog({ title: 'Reset password for ' + (p.full_name || p.email), ok: 'Set new password', html: MAIL_NOTE('new'), fields: [
+        { name: 'pw', label: 'New password (at least 8 characters)', required: true, minlength: 8, autocomplete: 'off' },
+        { name: 'send_email', label: 'Send login email to ' + p.email + ' (optional "Choose your own password" link)', type: 'checkbox', value: true }] });
+      if (v) await MC.withBusy(t, async () => { const r = await api.adminUsers('reset_password', { user_id: p.id, password: v.pw, send_email: v.send_email }); await mailResult(r, 'Password reset. The new password works now.', p.email); await MC.refresh(); });
       return;
     }
     if (d.uact) {

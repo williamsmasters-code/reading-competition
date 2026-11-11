@@ -105,3 +105,13 @@ CHANGING A LOGIN EMAIL LATER
 10. AFTER THE EVENT
    Head Judge finalizes (publishes). Site Admin or Head Judge downloads the per-judge Excel
    sheets (Finalization tab). The keep-alive workflow can then be deleted.
+
+LOGIN EMAILS (Add user / Reset password)  - built locally Nov 10, 2026; needs Daniel's OK
+   a. Redeploy the Edge Function admin-users (new: "Send login email").
+   b. Paste the email template: see supabase/email-templates/PASTE_STEPS.txt
+      (one template, "Reset password", subject "Your login for the Michelle Coy Reading
+      Competition").
+   c. Push the site update (new dialog wording, "Choose your own password" page).
+   Supabase's built-in email only delivers to members of the Supabase organization's
+   team, about 2 emails an hour. See PASTE_STEPS.txt.
+

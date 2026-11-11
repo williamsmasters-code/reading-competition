@@ -32,11 +32,12 @@
     </form>
     <div id="setpw" hidden>
       <h2 id="setpw-title">Choose your password</h2>
+      <p class="note" id="setpw-note" hidden></p>
       <form id="pwf" class="form" novalidate>
         <label class="full">New password (at least 8 characters)<input type="password" name="pw" minlength="8" required autocomplete="new-password"></label>
         <label class="full">Type it again<input type="password" name="pw2" minlength="8" required autocomplete="new-password"></label>
         <p class="warn" id="pwmsg" role="alert" hidden></p>
-        <div class="btnrow"><button class="btn" type="submit">Save password</button></div>
+        <div class="btnrow"><button class="btn" type="submit">Save password</button> <button class="btn ghost" type="button" id="keep" hidden>Keep my current password</button></div>
       </form>
     </div>
     <p class="small" style="margin-top:.8rem">Forgot your password? Ask the Site Admin to reset it for you.</p>
@@ -64,7 +65,19 @@
   else if (linkType === 'email_change') { msg.textContent = 'Your new email is confirmed. Sign in with it from now on.'; msg.hidden = false; msg.classList.add('note'); }
   if (setPw) {
     $('#setpw').hidden = false; f.hidden = true;
-    $('#setpw-title').textContent = linkType === 'invite' ? 'Welcome! Choose your password' : 'Choose a new password';
+    // ?from= is set by the admin-users function on the "Choose your own password" link in the login
+    // email. The password the Site Admin set keeps working, so choosing a new one is optional.
+    const from = h.get('from');
+    $('#setpw-title').textContent = linkType === 'invite' ? 'Welcome! Choose your password' : from === 'new_account' ? 'Welcome! Choose your own password' : from === 'password_reset' ? 'Choose your own password' : 'Choose a new password';
+    if (from === 'new_account' || from === 'password_reset') {
+      const note = $('#setpw-note'); note.hidden = false;
+      note.textContent = (from === 'new_account' ? 'The starting password the Site Admin gave you already works' : 'The new password the Site Admin gave you already works') + ' and keeps working until you change it. Choosing your own is optional.';
+      const k = $('#keep'); k.hidden = false;
+      k.onclick = async () => {
+        try { const p = await api.me(); if (p && p.role && p.active) { go(p); return; } } catch (e) { /* fall through */ }
+        location.href = 'login.html';
+      };
+    }
     const pf = $('#pwf');
     pf.onsubmit = async (e) => {
       e.preventDefault(); const pm = $('#pwmsg'); pm.hidden = true;

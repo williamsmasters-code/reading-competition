@@ -14,7 +14,8 @@ def shot(page, name): page.evaluate('window.scrollTo(0,0)'); page.wait_for_timeo
 def login(page, uid, dest):
     try: page.evaluate("window.MC && window.MC.api && window.MC.api.signOut && window.MC.api.signOut()")
     except Exception: pass
-    page.goto(BASE + 'login.html'); page.click(f'button[data-id="{uid}"]'); page.wait_for_url('**/' + dest); page.wait_for_timeout(600)
+    page.wait_for_timeout(250); page.goto(BASE + 'login.html'); page.wait_for_selector(f'button[data-id="{uid}"]'); page.wait_for_timeout(150)
+    page.click(f'button[data-id="{uid}"]'); page.wait_for_url('**/' + dest, timeout=15000); page.wait_for_timeout(600)
 def tab(page, hid): page.click(f'nav.tabs [role=tab][aria-controls="{hid}"]'); page.wait_for_timeout(300)
 def modal_ok(page): page.click('.modal button[type=submit]'); page.wait_for_timeout(500)
 

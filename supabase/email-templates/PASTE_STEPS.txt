@@ -1,0 +1,44 @@
+MICHELLE COY READING COMPETITION - LOGIN EMAIL TEMPLATE (paste into Supabase)
+
+Only ONE template is needed: "Reset password". The Site Admin console uses it both when
+it makes a new account and when it resets a password. The wording changes by itself
+("Welcome! ..." for a new account, "... set a new password ..." for a reset).
+The Supabase connector cannot change email templates, so these steps are done by hand.
+
+WHAT THE EMAIL SAYS
+  - the website link (https://williamsmasters-code.github.io/reading-competition/)
+  - their login email
+  - their role (Judge, Head Judge or Site Admin)
+  - an optional "Choose your own password" button
+  It never contains the password. The password the Site Admin types works at once and
+  keeps working until the person changes it; the button does not cancel it.
+
+STEPS
+  1. Open https://supabase.com/dashboard and pick the project MichelleCoyReading.
+  2. Left menu: Authentication > Emails > Templates (on some screens: "Email Templates").
+  3. Click "Reset password" (sometimes called "Reset Password" or "Recovery").
+  4. Subject heading: paste exactly
+         Your login for the Michelle Coy Reading Competition
+  5. Message body: switch to the source/HTML view if there is one, select everything
+     that is there now and delete it, then paste the whole of reset-password.html
+     (open it in Notepad, Ctrl+A, Ctrl+C, then Ctrl+V in Supabase).
+  6. Click Save.
+  7. Leave the other templates ("Invite user", "Confirm signup", "Magic link",
+     "Change email address", "Reauthentication") as they are. They are not used for
+     account creation or password resets.
+  8. Check Authentication > URL Configuration: Redirect URLs must include
+         https://williamsmasters-code.github.io/reading-competition/**
+     (already set up earlier). Without it the button would open the wrong page.
+
+LIMITS OF SUPABASE'S BUILT-IN EMAIL (no custom SMTP)
+  - About 2 emails an hour for the whole project. If the limit is reached, the account
+    or new password is still saved; the console says the email was not sent. Tell the
+    person their email and password yourself, or untick "Send login email".
+  - IMPORTANT: Supabase's built-in email only delivers to people who are members of the
+    Supabase organization's Team (Organization settings > Team). Emails to anyone else
+    are refused ("Email address not authorized"). To email the judges, either invite
+    each judge to the Supabase team (this gives them access to the Supabase dashboard,
+    so it is not recommended), or set up a custom email sender (SMTP) under
+    Authentication > Emails > SMTP Settings. Until then, tell judges their login
+    yourself. The console shows a clear message when Supabase refuses an address.
+  - The "Choose your own password" button works once and expires after 1 hour.

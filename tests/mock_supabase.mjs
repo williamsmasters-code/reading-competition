@@ -59,6 +59,7 @@ const send = (res, status, body, extra) => {
 };
 const pgErr = (e) => ({ code: e.code || 'P0001', message: e.message, details: e.detail || null, hint: e.hint || null });
 export const log = [];
+const mails = []; let emailAllow = null; const EMAIL_LIMIT = +(process.env.MOCK_EMAIL_LIMIT || 2);
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x'); let raw = '';
   for await (const ch of req) raw += ch;
@@ -87,6 +88,20 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, userObj(r));
     }
     if (p === '/auth/v1/logout') return send(res, 204, undefined);
+    if (p === '/auth/v1/recover') { // like Supabase's built-in mailer: about 2 emails an hour
+      const now = Date.now();
+      if (mails.filter((m) => now - m.at < 3600e3).length >= EMAIL_LIMIT) return send(res, 429, { code: 429, error_code: 'over_email_send_rate_limit', msg: 'email rate limit exceeded' });
+      if (emailAllow && !emailAllow.includes(String(body.email || '').toLowerCase())) return send(res, 400, { code: 400, error_code: 'email_address_not_authorized', msg: 'Email address not authorized' });
+      const r = (await db.query('select * from auth.users where lower(email)=lower($1)', [body.email || ''])).rows[0];
+      if (r) { mails.push({ at: now, template: 'recovery', to: r.email, redirect_to: u.searchParams.get('redirect_to') || '', data: r.raw_user_meta_data || {} }); log.push('EMAIL recovery ' + r.email); }
+      return send(res, 200, {});
+    }
+    if (p === '/mock/email_allow') { emailAllow = body && body.list ? body.list.map((x) => x.toLowerCase()) : null; return send(res, 200, {}); } // test hook: built-in mailer "team only"
+    if (p === '/mock/mail') { if (req.method === 'DELETE') { mails.length = 0; return send(res, 200, {}); } return send(res, 200, mails); }
+    if (p === '/mock/password_ok') { // test hook: does this email + password still sign in?
+      const r = (await db.query('select * from auth.users where lower(email)=lower($1)', [u.searchParams.get('email')])).rows[0];
+      return send(res, 200, { ok: !!r && pw.get(r.id) === u.searchParams.get('password') });
+    }
     if (p.startsWith('/auth/v1/admin/users')) {
       if (who(req).role !== 'service_role') return send(res, 403, { msg: 'not admin' });
       const id = p.split('/')[5];
@@ -98,6 +113,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'PUT') {
         const r = (await db.query('select * from auth.users where id = $1', [id])).rows[0]; if (!r) return send(res, 404, { msg: 'User not found' });
         if (body.password) pw.set(id, body.password);
+        if (body.user_metadata) await db.query('update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data, \'{}\'::jsonb) || $1::jsonb where id=$2', [body.user_metadata, id]);
         if (body.email) { if ((await db.query('select 1 from auth.users where lower(email)=lower($1) and id<>$2', [body.email, id])).rows.length) return send(res, 422, { msg: 'A user with this email address has already been registered', error_code: 'email_exists' }); await db.query('update auth.users set email=lower($1) where id=$2', [body.email, id]); }
         if (body.ban_duration) { if (body.ban_duration === 'none') banned.delete(id); else banned.add(id); }
         return send(res, 200, userObj(r));

@@ -1,4 +1,4 @@
-// Supabase Edge Function: admin-users  (NOT deployed yet; Daniel approves the deploy)
+// Supabase Edge Function: admin-users  (deployed on the live project; Daniel approves each redeploy)
 // Lets the signed-in SITE ADMIN create login accounts and reset passwords.
 // The service role key is read from the function's environment on Supabase's
 // servers (SUPABASE_SERVICE_ROLE_KEY is provided automatically). It never goes
@@ -8,13 +8,32 @@
 // Optional secret: supabase secrets set ALLOWED_ORIGINS="https://williamsmasters-code.github.io" --project-ref <PROJECT-REF>
 //
 // Request (POST JSON, with the admin's normal Authorization: Bearer <access token>):
-//   {action:"create_user", email, password, full_name, role:"judge"|"head_judge"|"site_admin", add_to_panel?:true}
-//   {action:"reset_password", user_id, password}
+//   {action:"create_user", email, password, full_name, role:"judge"|"head_judge"|"site_admin", add_to_panel?:true, send_email?:true}
+//   {action:"reset_password", user_id, password, send_email?:true}
+//
+// Login emails: the password the Site Admin types works at once and keeps working until the
+// person changes it. With send_email the person also gets ONE email from Supabase's built-in
+// mailer (the "Reset Password" template, see supabase/email-templates/): the site link, their
+// login email, their role, and an optional "Choose your own password" link. The password is
+// never in the email. A recovery link does not change or cancel the password. Built-in email
+// allows only about 2 emails an hour; when that limit is hit the account/password change still
+// happens and the reply says the email was not sent.
 //   {action:"set_active", user_id, active:true|false}
 //   {action:"delete_user", user_id}
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ROLES = ["site_admin", "head_judge", "judge"];
+const ROLE_LABEL: Record<string, string> = { site_admin: "Site Admin", head_judge: "Head Judge", judge: "Judge" };
+// Where the "Choose your own password" link lands (login.html handles type=recovery links).
+const SITE = (Deno.env.get("SITE_URL") ?? "https://williamsmasters-code.github.io/reading-competition/").replace(/\/?$/, "/");
+const RATE_MSG = "The account change is saved, but the login email was not sent: Supabase's built-in email only allows about 2 emails an hour, and that limit has been reached. " +
+  "Tell the person their email and password yourself, or use Reset password with \"Send login email\" later.";
+// Supabase's built-in email only delivers to members of the Supabase organization's team
+// (until custom SMTP is set up). Other addresses fail with email_address_not_authorized.
+const NOT_AUTH_MSG = "The account change is saved, but the login email was not sent: Supabase's built-in email only delivers to people on the Supabase project's team. " +
+  "Tell the person their email and password yourself. (Setting up a custom email sender in Supabase removes this limit.)";
+const isRateLimit = (e: { status?: number; code?: string; message?: string } | null) =>
+  !!e && (e.status === 429 || /rate.?limit|over_email_send_rate_limit|only request this after/i.test(`${e.code ?? ""} ${e.message ?? ""}`));
 const allowed = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://williamsmasters-code.github.io,http://localhost:8000,http://127.0.0.1:8000,http://127.0.0.1:8766,http://127.0.0.1:8767")
   .split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -67,6 +86,17 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? "");
   const log = (a: string, detail: Record<string, unknown>) =>
     admin.from("audit_log").insert({ actor: who.user.id, action: a, detail });
+  // One email through Supabase's built-in mailer ("Reset Password" template). It only signs the
+  // person in to choose a password if they click it; their current password keeps working.
+  const mailer = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false, flowType: "implicit" } });
+  type Mail = { sent: boolean; warning?: string; skipped?: boolean };
+  const sendLoginEmail = async (email: string, reason: "new_account" | "password_reset"): Promise<Mail> => {
+    const { error } = await mailer.auth.resetPasswordForEmail(email, { redirectTo: SITE + "login.html?from=" + reason });
+    if (!error) return { sent: true };
+    if (isRateLimit(error)) return { sent: false, warning: RATE_MSG };
+    if (/not.?authori[sz]ed|email_address_not_authorized/i.test(`${error.code ?? ""} ${error.message ?? ""}`)) return { sent: false, warning: NOT_AUTH_MSG };
+    return { sent: false, warning: "The account change is saved, but the login email could not be sent (" + error.message + "). Tell the person their email and password yourself." };
+  };
 
   try {
     if (action === "create_user") {
@@ -84,7 +114,7 @@ Deno.serve(async (req) => {
       }
       const { data, error } = await admin.auth.admin.createUser({
         email, password, email_confirm: true,
-        user_metadata: { full_name }, app_metadata: { role },
+        user_metadata: { full_name, role_label: ROLE_LABEL[role], email_reason: "new_account" }, app_metadata: { role },
       });
       if (error) return out(400, { error: error.message });
       const id = data.user!.id;
@@ -95,8 +125,9 @@ Deno.serve(async (req) => {
         const seat = ((seats?.[0]?.seat as number | undefined) ?? 0) + 1;
         await admin.from("panel").insert({ judge_id: id, seat });
       }
-      await log("create_user", { id, email, role });
-      return out(200, { ok: true, id });
+      const mail: Mail = body.send_email === false ? { sent: false, skipped: true } : await sendLoginEmail(email, "new_account");
+      await log("create_user", { id, email, role, email_sent: mail.sent });
+      return out(200, { ok: true, id, email_sent: mail.sent, warning: mail.warning });
     }
 
     const user_id = String(body.user_id ?? "");
@@ -105,10 +136,16 @@ Deno.serve(async (req) => {
     if (action === "reset_password") {
       const password = String(body.password ?? "");
       if (password.length < 8) return out(400, { error: "The password must be at least 8 characters." });
-      const { error } = await admin.auth.admin.updateUserById(user_id, { password });
+      const { data: u, error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) return out(400, { error: error.message });
-      await log("reset_password", { id: user_id });
-      return out(200, { ok: true });
+      let mail: Mail = { sent: false, skipped: true };
+      if (body.send_email !== false && u?.user?.email) {
+        const { data: p } = await admin.from("profiles").select("full_name, role").eq("id", user_id).maybeSingle();
+        await admin.auth.admin.updateUserById(user_id, { user_metadata: { ...(u.user.user_metadata ?? {}), full_name: p?.full_name ?? "", role_label: ROLE_LABEL[p?.role ?? ""] ?? "", email_reason: "password_reset" } });
+        mail = await sendLoginEmail(u.user.email, "password_reset");
+      }
+      await log("reset_password", { id: user_id, email_sent: mail.sent });
+      return out(200, { ok: true, email_sent: mail.sent, warning: mail.warning });
     }
     if (action === "update_email") {
       // Site Admin changes someone's login email (their own included). Takes effect at once,
