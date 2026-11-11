@@ -133,9 +133,11 @@ ul.crits{list-style:none}
 .critrow .ct{flex:1 1 200px;font-size:.9rem;font-weight:700;min-width:0}
 .critrow .cn{flex:0 0 30px;height:30px;font-size:.85rem}
 
-/* score sheet — Option A: category left, 1–5 buttons right, comments under the row.
-   Phone: 3+2 button wrap so 44px targets stay side-by-side.
-   Tablet and laptop: one row of 5. Laptop (1024px+): sheet body scrolls, Total bar stays in view. */
+/* score sheet — three layouts (Table, Cards, Original), chosen by the judge.
+   Table: Excel-style # | Item | Score | Comments on one row. Default on ≥760px.
+   Cards: category left, 1–5 buttons right, one-line comment below. Default on narrow.
+   Original: pre-Option-A stacked card (question, full-width 1–5 row, comments box).
+   Laptop (1024px+): sheet body scrolls, Total / Save / Finalize stay in view. */
 #sheet{--score-col:8.4rem}
 .meta{display:grid;grid-template-columns:1fr;gap:.6rem;margin:1rem 0}
 .meta div{display:flex;flex-direction:column;gap:.15rem;font-weight:700;font-size:.8rem;background:var(--cream);border:2px solid var(--line);border-radius:.75rem;padding:.4rem .65rem}
@@ -143,78 +145,175 @@ ul.crits{list-style:none}
 .meta .full{grid-column:1/-1}
 @media(min-width:520px){.meta{grid-template-columns:1fr 1fr}}
 @media(min-width:700px){.meta{grid-template-columns:1fr 1fr 1fr}}
-.sheet-head,.crit{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) var(--score-col);
-  column-gap:.5rem;
-  align-items:center;
-}
-.sheet-head{font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--brown);padding:.2rem .15rem .4rem;margin:0}
-.sheet-head .h-score{text-align:center}
-.crit{background:#fff;border:3px solid var(--line);border-radius:1rem;padding:.65rem .7rem;margin:.45rem 0}
-.crit.missing{border-color:var(--red);background:#FFF6F6}
-.crit .crit-q{margin:0;min-width:0;display:flex;gap:.65rem;align-items:flex-start;font-weight:700}
-.crit .crit-q p{min-width:0;overflow-wrap:anywhere}
-.crit-q .num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;border:2px solid #C9A020}
-.crit .score-row{display:grid;grid-template-columns:repeat(3,2.45rem);gap:.3rem;justify-content:center;margin:0;width:100%;min-width:0}
-.score-btn{width:2.45rem;min-width:2.45rem;min-height:2.45rem;padding:0;border-radius:.75rem;border:3px solid #C9A66B;background:var(--cream);font-weight:900;font-size:1rem;color:var(--ink);cursor:pointer;font-family:inherit}
+.sheet-id{display:none}
+.sheet-intro{font-size:.88rem;margin:0}
+.sheet-keys{display:none}
+.sheet-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.45rem .7rem;margin:.15rem 0 .4rem}
+.layout-lab{font-weight:900;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--brown);margin-right:.35rem}
+.layout-sel{display:inline-flex;align-items:center;flex-wrap:wrap;gap:.15rem}
+.layout-sel[role=radiogroup]{display:inline-flex;align-items:center;flex-wrap:wrap}
+.layout-sel button{min-height:2.45rem;min-width:4.4rem;padding:.2rem .7rem;border:2px solid #C9A66B;background:var(--cream);color:var(--ink);font:inherit;font-weight:800;font-size:.82rem;cursor:pointer;margin-left:-2px}
+.layout-sel button:first-of-type{margin-left:0;border-radius:.7rem 0 0 .7rem}
+.layout-sel button:last-of-type{border-radius:0 .7rem .7rem 0}
+.layout-sel button[aria-checked=true]{background:var(--green);color:#fff;border-color:var(--green);z-index:1;position:relative}
+.layout-sel button:focus-visible{outline:3px solid var(--red);outline-offset:2px;z-index:2}
+.score-btn{padding:0;border-radius:.75rem;border:3px solid #C9A66B;background:var(--cream);font-weight:900;font-size:1rem;color:var(--ink);cursor:pointer;font-family:inherit}
 .score-btn[aria-pressed=true]{background:var(--red);color:#fff;border-color:#9A0C1C}
 .score-btn:disabled{cursor:default}
 .score-btn:disabled:not([aria-pressed=true]){opacity:.6}
-.crit .comment-lab{grid-column:1/-1;margin-top:.3rem;display:flex;flex-direction:row;align-items:center;gap:.45rem;font-size:.8rem;white-space:nowrap}
 .comment-lab{font-weight:700;font-size:.85rem}
-.comment-lab .comment-in{flex:1 1 auto;min-width:0;width:100%;height:40px;min-height:40px;max-height:40px;border:2px solid #D4A84B;border-radius:.6rem;padding:.2rem .55rem;font:inherit;background:#fff;color:var(--ink);resize:none}
-.comment-lab .comment-in[readonly]{background:var(--cream)}
-.sheet-id{display:none}
-.sheet-intro{font-size:.88rem;margin:0 0 .35rem}
-.sheet-keys{display:none}
+.comment-lab .comment-in,
+.comment-lab textarea{border:2px solid #D4A84B;border-radius:.6rem;padding:.2rem .55rem;font:inherit;background:#fff;color:var(--ink);width:100%}
+.comment-lab .comment-in[readonly],
+.comment-lab textarea[readonly]{background:var(--cream)}
 .total-bar{position:sticky;bottom:0;background:var(--ink);color:var(--gold);padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:4px solid var(--gold);border-radius:0 0 1rem 1rem;margin:1rem -1.2rem -1.1rem;z-index:3}
 .total-bar strong{font-size:1.4rem}
 .total-bar .bar-acts{display:flex;gap:.5rem;flex-wrap:wrap}
 .savestate{font-size:.8rem;color:#fff;font-weight:700;display:block}
 .savestate.bad{color:#FFB3B3}
 
-/* Tablet and up: one row of five score buttons */
+/* ===== Cards: two-column Option A ===== */
+#sheet[data-layout=cards] .sheet-head,
+#sheet[data-layout=cards] .crit{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) var(--score-col);
+  column-gap:.5rem;
+  align-items:center;
+}
+#sheet[data-layout=cards] .sheet-head{font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--brown);padding:.2rem .15rem .4rem;margin:0}
+#sheet[data-layout=cards] .sheet-head .h-score{text-align:center}
+#sheet[data-layout=cards] .crit{background:#fff;border:3px solid var(--line);border-radius:1rem;padding:.65rem .7rem;margin:.45rem 0}
+#sheet[data-layout=cards] .crit.missing{border-color:var(--red);background:#FFF6F6}
+#sheet[data-layout=cards] .crit-q{margin:0;min-width:0;display:flex;gap:.65rem;align-items:flex-start;font-weight:700}
+#sheet[data-layout=cards] .crit-q p{min-width:0;overflow-wrap:anywhere}
+#sheet[data-layout=cards] .crit-q .num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;border:2px solid #C9A020}
+#sheet[data-layout=cards] .score-row{display:grid;grid-template-columns:repeat(3,2.45rem);gap:.3rem;justify-content:center;margin:0;width:100%;min-width:0}
+#sheet[data-layout=cards] .score-btn{width:2.45rem;min-width:2.45rem;min-height:2.45rem}
+#sheet[data-layout=cards] .comment-lab{grid-column:1/-1;margin-top:.3rem;display:flex;flex-direction:row;align-items:center;gap:.45rem;font-size:.8rem;white-space:nowrap}
+#sheet[data-layout=cards] .comment-in{flex:1 1 auto;min-width:0;width:100%;height:40px;min-height:40px;max-height:40px;resize:none}
 @media(min-width:600px){
-  #sheet{--score-col:16.2rem}
-  .crit .score-row{grid-template-columns:repeat(5,2.8rem);justify-content:end}
-  .score-btn{width:2.8rem;min-width:2.8rem;min-height:2.8rem;font-size:1.15rem}
+  #sheet[data-layout=cards]{--score-col:16.2rem}
+  #sheet[data-layout=cards] .score-row{grid-template-columns:repeat(5,2.8rem);justify-content:end}
+  #sheet[data-layout=cards] .score-btn{width:2.8rem;min-width:2.8rem;min-height:2.8rem;font-size:1.15rem}
+}
+@media(max-width:420px){
+  #sheet[data-layout=cards] .crit{padding:.55rem .5rem}
+  #sheet[data-layout=cards] .crit-q{gap:.4rem;font-size:.86rem;line-height:1.3}
+  #sheet[data-layout=cards] .crit-q .num{flex-basis:28px;flex:0 0 28px;height:28px;font-size:.8rem}
 }
 
-/* Phone: tighter padding so the two columns stay side by side */
+/* ===== Table: Excel-style placement, Look A colours ===== */
+#sheet[data-layout=table] .sheet-head,
+#sheet[data-layout=table] .crit{
+  display:grid;
+  grid-template-columns:2.1rem minmax(0,1.7fr) 12.4rem minmax(7rem,1fr);
+  column-gap:.4rem;
+  align-items:center;
+}
+#sheet[data-layout=table] .sheet-head{
+  font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink);background:var(--gold);border:2px solid #C9A020;
+  border-radius:.55rem .55rem 0 0;padding:.35rem .5rem;margin:0;
+}
+#sheet[data-layout=table] .sheet-head .h-score{text-align:center}
+#sheet[data-layout=table] .crit{background:#fff;border:0;border-radius:0;border-bottom:2px solid var(--line);padding:.28rem .5rem;margin:0;box-shadow:none}
+#sheet[data-layout=table] .crit:nth-child(even){background:#FFF8E7}
+#sheet[data-layout=table] .crit.missing{background:#FFF6F6;box-shadow:inset 3px 0 0 var(--red)}
+#sheet[data-layout=table] .crit-num{font-weight:900;text-align:center;color:var(--brown);font-size:.9rem}
+#sheet[data-layout=table] .crit-q{margin:0;min-width:0;font-weight:700;font-size:.9rem;line-height:1.25}
+#sheet[data-layout=table] .crit-q p{margin:0;min-width:0;overflow-wrap:anywhere}
+#sheet[data-layout=table] .score-row{display:grid;grid-template-columns:repeat(5,36px);gap:4px;justify-content:center;margin:0;width:100%}
+#sheet[data-layout=table] .score-btn{width:36px;min-width:36px;min-height:36px;height:36px;border-width:2px;border-radius:.45rem;font-size:.95rem}
+#sheet[data-layout=table] .comment-lab{display:block;margin:0;font-size:0;white-space:normal}
+#sheet[data-layout=table] .comment-lab .comment-in{height:32px;min-height:32px;max-height:32px;resize:none;padding:.15rem .45rem;font-size:.85rem}
+@media(max-width:759px){
+  #sheet[data-layout=table] .sheet-head{display:none}
+  #sheet[data-layout=table] .crit{
+    display:grid;
+    grid-template-columns:2rem minmax(0,1fr);
+    gap:.35rem .5rem;
+    border:3px solid var(--line);border-radius:1rem;
+    padding:.65rem .6rem;margin:.45rem 0;
+    background:#fff;
+  }
+  #sheet[data-layout=table] .crit:nth-child(even){background:#fff}
+  #sheet[data-layout=table] .score-row,
+  #sheet[data-layout=table] .comment-lab{grid-column:1/-1}
+  #sheet[data-layout=table] .score-row{display:flex;grid-template-columns:none;gap:.3rem}
+  #sheet[data-layout=table] .score-btn{flex:1;width:auto;min-width:0;min-height:44px;height:44px}
+  #sheet[data-layout=table] .comment-lab{display:flex;flex-direction:row;align-items:center;gap:.45rem;font-size:.8rem;white-space:nowrap}
+}
+
+/* ===== Original: stacked card as before Option A ===== */
+#sheet[data-layout=original] .crit{background:#fff;border:3px solid var(--line);border-radius:1rem;padding:.9rem;margin:.75rem 0}
+#sheet[data-layout=original] .crit.missing{border-color:var(--red);background:#FFF6F6}
+#sheet[data-layout=original] .crit-q{display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.55rem;font-weight:700}
+#sheet[data-layout=original] .crit-q p{min-width:0;overflow-wrap:anywhere;margin:0}
+#sheet[data-layout=original] .crit-q .num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;border:2px solid #C9A020}
+#sheet[data-layout=original] .score-row{display:flex;gap:.4rem;margin-bottom:.55rem}
+#sheet[data-layout=original] .score-btn{flex:1;min-width:0;min-height:52px;font-size:1.15rem}
+#sheet[data-layout=original] .comment-lab{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem}
+#sheet[data-layout=original] .comment-lab textarea{min-height:48px;resize:vertical}
+
 @media(max-width:420px){
   #score.card{padding-left:.7rem;padding-right:.7rem}
   #score.card .total-bar{margin-left:-.7rem;margin-right:-.7rem}
-  .crit{padding:.55rem .5rem}
-  .crit .crit-q{gap:.4rem;font-size:.86rem;line-height:1.3}
-  .crit .crit-q .num{flex-basis:28px;flex:0 0 28px;height:28px;font-size:.8rem}
 }
 
-/* Laptop and larger: comfortable text column, slightly larger buttons,
-   criteria list scrolls, Total / Save / Finalize stay in view */
+/* Laptop and larger: compact chrome, criteria list scrolls, Total bar stays in view */
 @media(min-width:1024px){
-  #sheet{--score-col:16.5rem}
-  .crit .score-row{grid-template-columns:repeat(5,2.7rem);gap:.3rem;justify-content:end}
-  .score-btn{width:2.7rem;min-width:2.7rem;min-height:2.7rem;font-size:1.1rem}
   .sheet-keys{display:inline}
-  .sheet-id{display:block;background:var(--cream);border:2px solid var(--line);border-radius:.75rem;padding:.25rem .6rem;margin:.15rem 0 .2rem;font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sheet-id{display:block;background:var(--cream);border:2px solid var(--line);border-radius:.75rem;padding:.2rem .55rem;margin:0;font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #sheet .meta{display:none}
   #sheet .note{display:none}
-  .sheet-intro{margin:0 0 .15rem;font-size:.82rem}
-  .sheet-head{padding:.05rem .15rem .2rem}
-  .crit{padding:.3rem .65rem;margin:.18rem 0}
-  .crit .comment-lab{margin-top:.2rem}
-  .comment-lab .comment-in{height:32px;min-height:32px;max-height:32px;padding:.15rem .5rem}
-  body:has(#score:not([hidden])) #score.card h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  body:has(#score:not([hidden])) #score.card{padding-top:.7rem}
+  /* Laptop fill-layout: same compact header for all three, so Original's stacked cards stay in view. */
+  .sheet-intro{font-size:.78rem}
+  .sheet-toolbar{margin:0}
+  .layout-sel button{min-height:2rem;padding:.15rem .6rem;font-size:.78rem}
   body:has(#score:not([hidden])){display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  body:has(#score:not([hidden])) .demo-bar,
+  body:has(#score:not([hidden])) .topbar,
+  body:has(#score:not([hidden])) nav.tabs{flex-shrink:0}
   body:has(#score:not([hidden])) .footer{display:none}
-  body:has(#score:not([hidden])) main.wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;padding-bottom:.5rem}
-  body:has(#score:not([hidden])) #score.card{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;margin-bottom:0}
-  body:has(#score:not([hidden])) #score.card h2{margin-bottom:.35rem}
+  body:has(#score:not([hidden])) #statusline{display:none}
+  body:has(#score:not([hidden])) .topbar{padding:.4rem 1rem}
+  body:has(#score:not([hidden])) nav.tabs{padding:.3rem 1rem}
+  body:has(#score:not([hidden])) nav.tabs button{min-height:38px;padding:.35rem .8rem}
+  body:has(#score:not([hidden])) main.wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:.35rem 1rem .25rem}
+  body:has(#score:not([hidden])) #score.card{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;margin:0;padding:.4rem 1.1rem .4rem}
+  body:has(#score:not([hidden])) #score.card h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0}
   body:has(#score:not([hidden])) #sheet{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  body:has(#score:not([hidden])) #sheet .sheet-top{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.3rem .6rem}
+  body:has(#score:not([hidden])) #sheet .sheet-id{flex:1 1 14rem;min-width:0}
+  body:has(#score:not([hidden])) #sheet .sheet-toolbar{flex:0 1 auto}
+  body:has(#score:not([hidden])) #sheet .sheet-top .meta,
+  body:has(#score:not([hidden])) #sheet .sheet-top .posted,
+  body:has(#score:not([hidden])) #sheet .sheet-top .warn,
+  body:has(#score:not([hidden])) #sheet .sheet-top .note{flex:1 1 100%}
+  body:has(#score:not([hidden])) #sheet[data-layout=table] .sheet-intro,
+  body:has(#score:not([hidden])) #sheet[data-layout=cards] .sheet-intro{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   body:has(#score:not([hidden])) #sheet .sheet-body{flex:1 1 auto;overflow:auto;min-height:0;-webkit-overflow-scrolling:touch;scroll-padding-bottom:.6rem}
-  body:has(#score:not([hidden])) #sheet .total-bar{position:relative;z-index:4;flex:0 0 auto;margin:0 -1.2rem -1.1rem;padding:.55rem 1rem}
+  body:has(#score:not([hidden])) #sheet .total-bar{position:relative;z-index:4;flex:0 0 auto;margin:0 -1.1rem -.4rem;padding:.35rem 1rem;flex-wrap:nowrap;align-items:center}
+  body:has(#score:not([hidden])) #sheet .total-bar strong{font-size:1.2rem}
+  body:has(#score:not([hidden])) #sheet .savestate{display:inline;margin-left:.45rem}
+
+  #sheet[data-layout=cards]{--score-col:16.5rem}
+  #sheet[data-layout=cards] .score-row{grid-template-columns:repeat(5,2.7rem);gap:.3rem;justify-content:end}
+  #sheet[data-layout=cards] .score-btn{width:2.7rem;min-width:2.7rem;min-height:2.7rem;font-size:1.1rem}
+  #sheet[data-layout=cards] .sheet-head{padding:.05rem .15rem .2rem}
+  #sheet[data-layout=cards] .crit{padding:.3rem .65rem;margin:.18rem 0}
+  #sheet[data-layout=cards] .comment-lab{margin-top:.2rem}
+  #sheet[data-layout=cards] .comment-in{height:32px;min-height:32px;max-height:32px;padding:.15rem .5rem}
+
+  #sheet[data-layout=table] .sheet-head{padding:.16rem .4rem;position:sticky;top:0;z-index:1}
+  #sheet[data-layout=table] .crit{padding:.1rem .4rem}
+  #sheet[data-layout=table] .crit-q{font-size:.84rem;line-height:1.2}
+  #sheet[data-layout=table] .score-btn{width:34px;min-width:34px;min-height:34px;height:34px;font-size:.9rem}
+  #sheet[data-layout=table]{--score-col:auto}
+  #sheet[data-layout=table] .sheet-head,
+  #sheet[data-layout=table] .crit{grid-template-columns:1.8rem minmax(0,2.6fr) 11.2rem minmax(7.5rem,0.9fr)}
+  #sheet[data-layout=table] .score-row{grid-template-columns:repeat(5,34px);gap:3px}
+  #sheet[data-layout=table] .comment-in{height:30px;min-height:30px;max-height:30px}
 }
 
 /* checklist */

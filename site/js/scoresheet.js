@@ -51,20 +51,84 @@
     window.addEventListener('beforeunload', (e) => { if (dirty.size && !locked()) { keepPending(); e.preventDefault(); e.returnValue = ''; } });
     window.addEventListener('online', () => flush());
 
+    const LAYOUTS = ['table', 'cards', 'original'];
+    const LAYOUT_KEY = 'mcrc_sheet_layout';
+    function isNarrow() { return window.matchMedia('(max-width: 759px)').matches; }
+    function layoutOf() {
+      try {
+        const v = localStorage.getItem(LAYOUT_KEY);
+        if (LAYOUTS.indexOf(v) !== -1) return v;
+      } catch (e) { /* ignore */ }
+      return isNarrow() ? 'cards' : 'table';
+    }
+    function harvestComments() {
+      el.querySelectorAll('[data-crit]').forEach((row) => {
+        const f = row.querySelector('.comment-in, .comment-lab textarea');
+        if (!f) return;
+        const id = row.dataset.crit;
+        draft[id] = Object.assign({}, draft[id], { comment: f.value });
+      });
+    }
+    function setLayout(name, persist) {
+      if (LAYOUTS.indexOf(name) === -1) return;
+      harvestComments();
+      if (persist) { try { localStorage.setItem(LAYOUT_KEY, name); } catch (e) { /* ignore */ } }
+      render();
+      const btn = el.querySelector('.layout-sel [data-layout="' + name + '"]');
+      if (btn) btn.focus({ preventScroll: true });
+    }
+
     function total() { return s.criteria.reduce((t, c) => t + (draft[c.id] && draft[c.id].score ? draft[c.id].score : 0), 0); }
     function updateTotal() { const t = el.querySelector('[data-total]'); if (t) t.textContent = total(); }
+
+    function scoreButtons(c, i, d, ro) {
+      return `<div class="score-row" role="group" aria-labelledby="q-${esc(c.id)}">
+              ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="score-btn" data-score="${n}" aria-pressed="${d.score === n}" aria-label="Score ${n} for item ${i + 1}" ${ro ? 'disabled' : ''}>${n}</button>`).join('')}
+            </div>`;
+    }
+    function commentField(i, d, ro, layout) {
+      if (layout === 'original') {
+        return `<label class="comment-lab">Comments <textarea rows="2" maxlength="1000" placeholder="${ro ? '' : 'Optional comments…'}" ${ro ? 'readonly' : ''}>${esc(d.comment)}</textarea></label>`;
+      }
+      return `<label class="comment-lab">Comments <input type="text" class="comment-in" maxlength="200" placeholder="${ro ? '' : 'Optional comments…'}" aria-label="Comments for item ${i + 1}" ${ro ? 'readonly' : ''} value="${esc(d.comment)}"></label>`;
+    }
+    function criteriaMarkup(layout, ro) {
+      return s.criteria.map((c, i) => {
+        const d = draft[c.id] || { score: null, comment: '' };
+        if (layout === 'table') {
+          return `<div class="crit" data-crit="${esc(c.id)}">
+            <div class="crit-num" aria-hidden="true">${i + 1}</div>
+            <div class="crit-q" id="q-${esc(c.id)}"><p>${esc(c.text)}</p></div>
+            ${scoreButtons(c, i, d, ro)}
+            ${commentField(i, d, ro, layout)}
+          </div>`;
+        }
+        return `<div class="crit" data-crit="${esc(c.id)}">
+            <div class="crit-q" id="q-${esc(c.id)}"><span class="num" aria-hidden="true">${i + 1}</span><p>${esc(c.text)}</p></div>
+            ${scoreButtons(c, i, d, ro)}
+            ${commentField(i, d, ro, layout)}
+          </div>`;
+      }).join('');
+    }
 
     function render() {
       el.dataset.locked = String(locked());
       const r = reader();
       if (!r) { el.innerHTML = '<p class="placeholder">Pick a reader from the list to score.</p>'; return; }
       const ro = locked(); const sh = sheet();
+      const layout = layoutOf();
+      el.dataset.layout = layout;
       const reason = s.final.status === 'published' ? '<div class="posted"><p><strong>Results have been posted.</strong> Scores are locked.</p></div>'
         : sh && sh.status === 'turned_in' ? (s.me.role === 'head_judge' ? '<div class="posted"><p><strong>Turned in.</strong> This sheet is read-only. To change it, reopen it from the All judges\' scores tab.</p></div>' : '<div class="posted"><p><strong>Turned in and sent to the Head Judge.</strong> This sheet is read-only. Ask the Head Judge if you need to change anything.</p></div>')
           : r.judging_status === 'not_opened' ? '<div class="warn">🔒 The Head Judge has not opened judging for this reader yet.</div>'
             : `<p class="note">Drafts save automatically as you score. You can change them until you finalize.${r.judging_status === 'closed' ? ' Judging for this reader is closed, but you can still finish your sheet.' : ''}</p>`;
+      const head = layout === 'table'
+        ? '<div class="sheet-head" aria-hidden="true"><div>#</div><div>Item</div><div class="h-score">Score</div><div>Comments</div></div>'
+        : layout === 'cards'
+          ? '<div class="sheet-head"><div>Category</div><div class="h-score">Score</div></div>'
+          : '';
       el.innerHTML = `
-        <div class="sheet-body">
+        <div class="sheet-top">
         <p class="sheet-id"><strong>${esc(r.student_name)}</strong> · ${esc(r.item || '—')} · ${esc(r.school || '—')} · ${esc(r.round || '—')} · ${esc(r.district || '—')} · ${esc(fmtDate(r.reading_date) || '—')} · ${esc(s.me.full_name)} (${esc(seatLabel())})</p>
         <div class="meta">
           <div class="full">Reader<span>${esc(r.student_name)}</span></div>
@@ -76,18 +140,20 @@
           <div>Judge<span>${esc(s.me.full_name)} (${esc(seatLabel())})</span></div>
         </div>
         ${reason}
-        <p class="sheet-intro">Score each item <strong>1–5</strong>. <span class="sheet-keys">Keyboard: <strong>1–5</strong> to score, arrow keys to move, Tab to the next item.</span></p>
-        <div class="sheet-head"><div>Category</div><div class="h-score">Score</div></div>
-        ${s.criteria.map((c, i) => {
-          const d = draft[c.id] || { score: null, comment: '' };
-          return `<div class="crit" data-crit="${esc(c.id)}">
-            <div class="crit-q" id="q-${esc(c.id)}"><span class="num" aria-hidden="true">${i + 1}</span><p>${esc(c.text)}</p></div>
-            <div class="score-row" role="group" aria-labelledby="q-${esc(c.id)}">
-              ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="score-btn" data-score="${n}" aria-pressed="${d.score === n}" aria-label="Score ${n} for item ${i + 1}" ${ro ? 'disabled' : ''}>${n}</button>`).join('')}
-            </div>
-            <label class="comment-lab">Comments <input type="text" class="comment-in" maxlength="200" placeholder="${ro ? '' : 'Optional comments…'}" aria-label="Comments for item ${i + 1}" ${ro ? 'readonly' : ''} value="${esc(d.comment)}"></label>
-          </div>`;
-        }).join('')}
+        <div class="sheet-toolbar">
+          <p class="sheet-intro">Score each item <strong>1–5</strong>. <span class="sheet-keys">Keyboard: <strong>1–5</strong> to score, arrow keys to move, Tab to the next item.</span></p>
+          <div class="layout-sel" role="radiogroup" aria-labelledby="layout-lab">
+            <span id="layout-lab" class="layout-lab">Layout</span>
+            ${LAYOUTS.map((k) => {
+              const label = k === 'table' ? 'Table' : k === 'cards' ? 'Cards' : 'Original';
+              return `<button type="button" role="radio" data-layout="${k}" aria-checked="${layout === k}" aria-label="${label} layout">${label}</button>`;
+            }).join('')}
+          </div>
+        </div>
+        </div>
+        <div class="sheet-body">
+        ${head}
+        ${criteriaMarkup(layout, ro)}
         <div class="warn" data-missing hidden role="alert"></div>
         </div>
         <div class="total-bar">
@@ -122,6 +188,8 @@
     }
 
     el.addEventListener('click', async (e) => {
+      const lay = e.target.closest('[data-layout]');
+      if (lay && el.contains(lay) && lay.closest('.layout-sel')) { setLayout(lay.dataset.layout, true); return; }
       const b = e.target.closest('.score-btn');
       if (b && !b.disabled) { applyScore(b); return; }
       const a = e.target.closest('[data-act]'); if (!a) return;
@@ -138,6 +206,19 @@
       }
     });
     el.addEventListener('keydown', (e) => {
+      const layBtn = e.target.closest('.layout-sel [data-layout]');
+      if (layBtn && el.contains(layBtn)) {
+        const i = LAYOUTS.indexOf(layBtn.dataset.layout);
+        let j = -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = Math.min(LAYOUTS.length - 1, i + 1);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = Math.max(0, i - 1);
+        else if (e.key === 'Home') j = 0;
+        else if (e.key === 'End') j = LAYOUTS.length - 1;
+        else return;
+        e.preventDefault();
+        setLayout(LAYOUTS[j], true);
+        return;
+      }
       const btn = e.target.closest('.score-btn');
       if (!btn || btn.disabled || !el.contains(btn)) return;
       const row = btn.closest('.score-row');
@@ -156,7 +237,7 @@
       go.focus();
     });
     el.addEventListener('input', (e) => {
-      const t = e.target.closest('.comment-in'); if (!t || t.readOnly) return;
+      const t = e.target.closest('.comment-in, .comment-lab textarea'); if (!t || t.readOnly) return;
       const c = t.closest('[data-crit]').dataset.crit;
       draft[c] = Object.assign({}, draft[c], { comment: t.value }); dirty.add(c); keepPending(); setSave('Saving…'); later(900);
     });
@@ -178,7 +259,8 @@
         const before = JSON.stringify(draft); const lockedBefore = el.dataset.locked;
         fromServer();
         const lk = String(locked());
-        const focusText = document.activeElement && el.contains(document.activeElement) && document.activeElement.classList.contains('comment-in');
+        const ae = document.activeElement;
+        const focusText = ae && el.contains(ae) && (ae.classList.contains('comment-in') || (ae.tagName === 'TEXTAREA' && ae.closest('.comment-lab')));
         if (JSON.stringify(draft) !== before || lockedBefore !== lk || el.querySelectorAll('.crit').length !== s.criteria.length) { if (!focusText || lockedBefore !== lk) render(); }
       },
       flush, get readerId() { return readerId; }
