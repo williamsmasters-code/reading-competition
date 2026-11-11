@@ -85,7 +85,7 @@
             <div class="score-row" role="group" aria-labelledby="q-${esc(c.id)}">
               ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="score-btn" data-score="${n}" aria-pressed="${d.score === n}" aria-label="Score ${n} for item ${i + 1}" ${ro ? 'disabled' : ''}>${n}</button>`).join('')}
             </div>
-            <label class="comment-lab">Comments <textarea rows="1" maxlength="1000" placeholder="${ro ? '' : 'Optional comments…'}" ${ro ? 'readonly' : ''}>${esc(d.comment)}</textarea></label>
+            <label class="comment-lab">Comments <input type="text" class="comment-in" maxlength="200" placeholder="${ro ? '' : 'Optional comments…'}" aria-label="Comments for item ${i + 1}" ${ro ? 'readonly' : ''} value="${esc(d.comment)}"></label>
           </div>`;
         }).join('')}
         <div class="warn" data-missing hidden role="alert"></div>
@@ -156,7 +156,7 @@
       go.focus();
     });
     el.addEventListener('input', (e) => {
-      const t = e.target.closest('textarea'); if (!t || t.readOnly) return;
+      const t = e.target.closest('.comment-in'); if (!t || t.readOnly) return;
       const c = t.closest('[data-crit]').dataset.crit;
       draft[c] = Object.assign({}, draft[c], { comment: t.value }); dirty.add(c); keepPending(); setSave('Saving…'); later(900);
     });
@@ -178,7 +178,7 @@
         const before = JSON.stringify(draft); const lockedBefore = el.dataset.locked;
         fromServer();
         const lk = String(locked());
-        const focusText = document.activeElement && el.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA';
+        const focusText = document.activeElement && el.contains(document.activeElement) && document.activeElement.classList.contains('comment-in');
         if (JSON.stringify(draft) !== before || lockedBefore !== lk || el.querySelectorAll('.crit').length !== s.criteria.length) { if (!focusText || lockedBefore !== lk) render(); }
       },
       flush, get readerId() { return readerId; }

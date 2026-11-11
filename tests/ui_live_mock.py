@@ -31,7 +31,7 @@ with sync_playwright() as p:
     def modal_ok(): pg.click('.modal button[type=submit]'); pg.wait_for_timeout(1200)
     def score_and_turn_in(base=3):
         for i, c in enumerate(pg.locator('#sheet .crit').all()): c.locator(f'.score-btn[data-score="{min(5, base + (i % 2))}"]').click(); pg.wait_for_timeout(60)
-        pg.locator('#sheet .crit textarea').first.fill('Live-mode comment'); pg.wait_for_timeout(1500)
+        pg.locator('#sheet .crit .comment-in').first.fill('Live-mode comment'); pg.wait_for_timeout(1500)
         pg.click('#sheet [data-act=final]')
         try: pg.wait_for_selector('.modal', timeout=5000)
         except Exception: notes.append('DEBUG no modal; missing=' + pg.inner_text('#sheet [data-missing]')); pg.screenshot(path='/tmp/fail.png', full_page=True); return False

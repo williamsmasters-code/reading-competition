@@ -42,7 +42,7 @@ with sync_playwright() as p:
         shot(page, f'{sz}-05-judge-missing-items')
         for c in page.locator('.crit').all():
             if c.locator('.score-btn[aria-pressed=true]').count() == 0: c.locator('.score-btn[data-score="4"]').click()
-        page.locator('.crit textarea').first.fill('Clear voice, good pace.'); page.wait_for_timeout(1500)
+        page.locator('.crit .comment-in').first.fill('Clear voice, good pace.'); page.wait_for_timeout(1500)
         ok('All changes saved' in page.inner_text('#sheet'), f'{sz}: autosave reports saved')
         page.click('[data-act=final]'); page.wait_for_timeout(300)
         ok(page.is_visible('.modal'), f'{sz}: confirm dialog before turn-in'); shot(page, f'{sz}-06-judge-confirm-turn-in')
