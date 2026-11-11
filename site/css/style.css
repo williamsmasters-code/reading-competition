@@ -349,6 +349,32 @@ ul.crits{list-style:none}
 .gallery figcaption{font-size:.8rem;padding:.35rem .5rem;font-weight:700}
 .gallery .del{margin:.3rem .5rem .5rem}
 
+
+/* 2025 Winner — compact collage (Option C) */
+.y2025 .lede{font-size:1.02rem}
+.y2025 .lede strong{font-weight:900}
+.y2025 .btnrow{margin-top:.85rem}
+.credit{font-size:.82rem;color:var(--brown);margin-top:.85rem}
+.credit a{color:var(--green)}
+.hybrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:.85rem 1.1rem;align-items:start;margin-top:.4rem}
+.hybrid .feat-wrap{margin:0;border-radius:1rem;overflow:hidden;border:3px solid var(--line);background:var(--soft)}
+.hybrid .feat-wrap img{display:block;width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;object-position:center top}
+.hybrid .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-top:.7rem}
+.hybrid .thumbs a{margin:0;display:block;border-radius:.65rem;overflow:hidden;border:2px solid var(--line);background:var(--soft)}
+.hybrid .thumbs img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+@media(max-width:700px){
+  .hybrid{grid-template-columns:1fr}
+  .hybrid .feat-wrap img{max-height:70vh;width:100%}
+}
+
+/* 2025 Winner lightbox */
+.lb{position:fixed;inset:0;background:rgba(42,26,10,.88);z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
+.lb[hidden]{display:none !important}
+.lb img{max-width:min(1100px,96vw);max-height:70vh;width:auto;height:auto;border-radius:.8rem;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.lb .lb-cap{color:#fff;margin:.6rem 0 .2rem;text-align:center;font-weight:800;max-width:40rem}
+.lb .lb-acts{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.7rem;align-items:center}
+.lb .lb-acts .btn{min-height:44px}
+.lb .lb-close{position:absolute;top:.6rem;right:.6rem}
 /* modal */
 .modal{position:fixed;inset:0;background:rgba(42,26,10,.55);display:flex;align-items:center;justify-content:center;z-index:30;padding:1rem}
 .modal-card{background:var(--cream);border:3px solid var(--gold);border-radius:1.25rem;padding:1.25rem 1.3rem;max-width:32rem;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 0 rgba(202,160,60,.35)}

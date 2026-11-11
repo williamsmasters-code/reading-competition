@@ -29,7 +29,7 @@ with sync_playwright() as p:
         txt = page.inner_text('body')
         ok('2026 Competition: November 20, 2026' in txt and 'Starts 9:00' in txt, f'{sz}: banner date + start time')
         ok('EXAMPLE DATA' in txt.upper(), f'{sz}: demo banner shown')
-        ok('Azariah Williams' in txt and 'Grenada Informer' in txt, f'{sz}: 2025 winner card with source')
+        ok('Azariah Williams' in txt and 'Our Lady of the Rosary Roman Catholic School' in txt and 'Grenada Informer' not in txt and 'Facebook, 4 Nov 2025' in txt, f'{sz}: 2025 winner card with Facebook source')
         ok('/250' not in txt, f'{sz}: no /250 anywhere')
         ok(not page.is_visible('#gallery') , f'{sz}: gallery hidden with no photos')
         shot(page, f'{sz}-01-landing-before-results')

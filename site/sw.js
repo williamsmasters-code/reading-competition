@@ -4,7 +4,7 @@
 // NEVER caches Supabase, auth, realtime, storage, CDN or any other cross-origin response,
 // never config.js, and never any non-GET request: those requests are not intercepted at all,
 // so scores, results and sign-ins always come fresh from Supabase.
-const VERSION = 'v1.2.2';
+const VERSION = 'v1.2.3';
 const C = 'mcrc-shell-' + VERSION, OFF = './offline.html';
 const SHELL = ['./', './index.html', './login.html', './judge.html', './head.html', './admin.html', './offline.html',
   './css/style.css', './js/core.js', './js/api.js', './js/console.js', './js/scoresheet.js', './js/judge.js', './js/head.js', './js/admin.js',
