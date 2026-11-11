@@ -6,8 +6,7 @@
   let sheet = null, current = null, show = null, lastOpen;
   function rowFor(s, r, i) {
     const sh = MC.sheetOf(s, r.id, s.me.id); const t = MC.sheetTotal(s, r.id, s.me.id);
-    const max = 5 * s.criteria.length;
-    if (sh && sh.status === 'turned_in') return `<article class="rrow"><div class="rinfo"><span class="ord" aria-hidden="true">${i + 1}</span><div class="rwho"><strong>${esc(r.student_name)}</strong><span class="small">${esc(r.school)}</span></div></div><div class="acts"><span class="op t">Turned in · ${t.total} / ${max}</span><button type="button" class="btn ghost" data-pick="${esc(r.id)}">View scores</button></div></article>`;
+    if (sh && sh.status === 'turned_in') return `<article class="rrow"><div class="rinfo"><span class="ord" aria-hidden="true">${i + 1}</span><div class="rwho"><strong>${esc(r.student_name)}</strong><span class="small">${esc(r.school)}</span></div></div><div class="acts"><span class="op t">Turned in · ${t.total}</span><button type="button" class="btn ghost" data-pick="${esc(r.id)}">View scores</button></div></article>`;
     if (r.judging_status === 'not_opened') return `<article class="rrow lock"><div class="rinfo"><span class="ord" aria-hidden="true">${i + 1}</span><div class="rwho"><strong>${esc(r.student_name)}</strong> <span class="locktag">🔒 Locked</span><span class="small">${esc(r.school)}</span></div></div><div class="acts"><span class="op w">Not opened yet</span><button type="button" class="btn ghost" disabled>Can't score yet</button></div></article>`;
     const isOpen = r.judging_status === 'open';
     const label = sh || t.scored ? (isOpen ? 'Continue scoring' : 'Continue draft') : 'Score now';

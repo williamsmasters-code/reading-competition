@@ -93,11 +93,11 @@
   // detail modal: one judge's criteria scores + comments for one reader
   MC.showDetail = function (s, readerId, judgeId) {
     const r = s.readers.find((x) => x.id === readerId); const p = MC.panelRows(s).find((x) => x.judge_id === judgeId) || { label: 'Judge', name: '' };
-    const max = 5 * s.criteria.length; const t = MC.sheetTotal(s, readerId, judgeId); const sh = MC.sheetOf(s, readerId, judgeId);
+    const t = MC.sheetTotal(s, readerId, judgeId); const sh = MC.sheetOf(s, readerId, judgeId);
     const rows = s.criteria.map((c, i) => { const sc = s.scores.find((x) => x.reader_id === readerId && x.judge_id === judgeId && x.criterion_id === c.id) || {};
       return `<tr><td>${i + 1}</td><td>${esc(c.text)}</td><td class="tot">${sc.score == null ? '—' : sc.score}</td><td>${esc(sc.comment || '')}</td></tr>`; }).join('');
     MC.dialog({ title: (r ? r.student_name : 'Reader') + ' · ' + p.label, cancel: false, ok: 'Close',
-      html: `<p class="small">${esc(p.name)} · ${sh && sh.status === 'turned_in' ? 'Turned in' : 'Draft'} · Total <strong>${t.total}</strong> / ${max}</p><div class="scroll"><table class="t"><thead><tr><th>#</th><th>Item</th><th>Score</th><th>Comments</th></tr></thead><tbody>${rows}</tbody></table></div>` });
+      html: `<p class="small">${esc(p.name)} · ${sh && sh.status === 'turned_in' ? 'Turned in' : 'Draft'} · Total <strong>${t.total}</strong></p><div class="scroll"><table class="t"><thead><tr><th>#</th><th>Item</th><th>Score</th><th>Comments</th></tr></thead><tbody>${rows}</tbody></table></div>` });
   };
   MC.roleLabel = roleLabel;
 })();

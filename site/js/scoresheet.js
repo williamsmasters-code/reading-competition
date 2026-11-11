@@ -58,12 +58,14 @@
       el.dataset.locked = String(locked());
       const r = reader();
       if (!r) { el.innerHTML = '<p class="placeholder">Pick a reader from the list to score.</p>'; return; }
-      const ro = locked(); const sh = sheet(); const max = 5 * s.criteria.length;
+      const ro = locked(); const sh = sheet();
       const reason = s.final.status === 'published' ? '<div class="posted"><p><strong>Results have been posted.</strong> Scores are locked.</p></div>'
         : sh && sh.status === 'turned_in' ? (s.me.role === 'head_judge' ? '<div class="posted"><p><strong>Turned in.</strong> This sheet is read-only. To change it, reopen it from the All judges\' scores tab.</p></div>' : '<div class="posted"><p><strong>Turned in and sent to the Head Judge.</strong> This sheet is read-only. Ask the Head Judge if you need to change anything.</p></div>')
           : r.judging_status === 'not_opened' ? '<div class="warn">🔒 The Head Judge has not opened judging for this reader yet.</div>'
             : `<p class="note">Drafts save automatically as you score. You can change them until you finalize.${r.judging_status === 'closed' ? ' Judging for this reader is closed, but you can still finish your sheet.' : ''}</p>`;
       el.innerHTML = `
+        <div class="sheet-body">
+        <p class="sheet-id"><strong>${esc(r.student_name)}</strong> · ${esc(r.item || '—')} · ${esc(r.school || '—')} · ${esc(r.round || '—')} · ${esc(r.district || '—')} · ${esc(fmtDate(r.reading_date) || '—')} · ${esc(s.me.full_name)} (${esc(seatLabel())})</p>
         <div class="meta">
           <div class="full">Reader<span>${esc(r.student_name)}</span></div>
           <div>Item (reading)<span>${esc(r.item || '—')}</span></div>
@@ -74,7 +76,8 @@
           <div>Judge<span>${esc(s.me.full_name)} (${esc(seatLabel())})</span></div>
         </div>
         ${reason}
-        <p style="font-size:.88rem;margin-bottom:.25rem">Score each item <strong>1–5</strong> · Sheet total out of <strong>${max}</strong></p>
+        <p class="sheet-intro">Score each item <strong>1–5</strong>. <span class="sheet-keys">Keyboard: <strong>1–5</strong> to score, arrow keys to move, Tab to the next item.</span></p>
+        <div class="sheet-head"><div>Category</div><div class="h-score">Score</div></div>
         ${s.criteria.map((c, i) => {
           const d = draft[c.id] || { score: null, comment: '' };
           return `<div class="crit" data-crit="${esc(c.id)}">
@@ -82,41 +85,75 @@
             <div class="score-row" role="group" aria-labelledby="q-${esc(c.id)}">
               ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="score-btn" data-score="${n}" aria-pressed="${d.score === n}" aria-label="Score ${n} for item ${i + 1}" ${ro ? 'disabled' : ''}>${n}</button>`).join('')}
             </div>
-            <label class="comment-lab">Comments <textarea rows="2" maxlength="1000" placeholder="${ro ? '' : 'Optional comments…'}" ${ro ? 'readonly' : ''}>${esc(d.comment)}</textarea></label>
+            <label class="comment-lab">Comments <textarea rows="1" maxlength="1000" placeholder="${ro ? '' : 'Optional comments…'}" ${ro ? 'readonly' : ''}>${esc(d.comment)}</textarea></label>
           </div>`;
         }).join('')}
         <div class="warn" data-missing hidden role="alert"></div>
+        </div>
         <div class="total-bar">
-          <div>Total <strong data-total>${total()}</strong> / ${max}<span class="savestate" data-save aria-live="polite">${ro ? '' : dirty.size ? (failed ? 'Not saved yet. Retrying…' : 'Saving…') : 'All changes saved ✓'}</span></div>
+          <div>Total <strong data-total>${total()}</strong><span class="savestate" data-save aria-live="polite">${ro ? '' : dirty.size ? (failed ? 'Not saved yet. Retrying…' : 'Saving…') : 'All changes saved ✓'}</span></div>
           ${ro ? `<span class="chip f" style="font-size:.85rem;padding:.35rem .7rem">${sh && sh.status === 'turned_in' ? 'Turned in' : 'Read-only'}</span>` :
             '<div class="bar-acts"><button class="btn ghost" type="button" data-act="save">Save draft</button><button class="btn" type="button" data-act="final">Finalize my scores</button></div>'}
         </div>`;
+      syncRoving();
       if (dirty.size && !ro) later(200);
+    }
+    function syncRoving() {
+      el.querySelectorAll('.score-row').forEach((row) => {
+        const btns = row.querySelectorAll('.score-btn');
+        let pick = row.querySelector('.score-btn[aria-pressed="true"]');
+        if (!pick) pick = btns[0];
+        btns.forEach((b) => { b.tabIndex = (b === pick && !b.disabled) ? 0 : -1; });
+      });
+    }
+    function applyScore(btn) {
+      if (!btn || btn.disabled) return;
+      const c = btn.closest('[data-crit]').dataset.crit; const n = +btn.dataset.score;
+      draft[c] = Object.assign({}, draft[c], { score: n }); dirty.add(c); keepPending();
+      const row = btn.closest('.score-row');
+      row.querySelectorAll('.score-btn').forEach((x) => {
+        const on = +x.dataset.score === n;
+        x.setAttribute('aria-pressed', String(on));
+        x.tabIndex = (on && !x.disabled) ? 0 : -1;
+      });
+      btn.closest('.crit').classList.remove('missing');
+      updateTotal(); setSave('Saving…'); later(150);
+      const m = el.querySelector('[data-missing]'); if (m && !m.hidden) checkMissing(true);
     }
 
     el.addEventListener('click', async (e) => {
       const b = e.target.closest('.score-btn');
-      if (b && !b.disabled) {
-        const c = b.closest('[data-crit]').dataset.crit; const n = +b.dataset.score;
-        draft[c] = Object.assign({}, draft[c], { score: n }); dirty.add(c); keepPending();
-        b.parentNode.querySelectorAll('.score-btn').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.score === n)));
-        b.closest('.crit').classList.remove('missing');
-        updateTotal(); setSave('Saving…'); later(150);
-        const m = el.querySelector('[data-missing]'); if (m && !m.hidden) checkMissing(true);
-        return;
-      }
+      if (b && !b.disabled) { applyScore(b); return; }
       const a = e.target.closest('[data-act]'); if (!a) return;
       if (a.dataset.act === 'save') { const ok = await flush(); if (ok) toast('Draft saved.'); return; }
       if (a.dataset.act === 'final') {
         if (checkMissing(false)) return;
         const r = reader();
-        const yes = await MC.confirmBox('Finalize your scores?', `<p>Turn in your scores for <strong>${esc(r.student_name)}</strong> (total ${total()} / ${5 * s.criteria.length}). After you finalize, this sheet becomes read-only. ${s.me.role === 'head_judge' ? 'You can reopen it later from the All judges\' scores tab.' : 'Ask the Head Judge if you need to change anything.'}</p>`, 'Finalize my scores');
+        const yes = await MC.confirmBox('Finalize your scores?', `<p>Turn in your scores for <strong>${esc(r.student_name)}</strong> (total ${total()}). After you finalize, this sheet becomes read-only. ${s.me.role === 'head_judge' ? 'You can reopen it later from the All judges\' scores tab.' : 'Ask the Head Judge if you need to change anything.'}</p>`, 'Finalize my scores');
         if (!yes) return;
         a.disabled = true;
         if (!(await flush())) { a.disabled = false; toast('Your scores could not be saved yet, so they were not turned in. Check the connection and try again.', true); return; }
         try { await api.turnIn(readerId); toast('Turned in. Thank you!'); await MC.refresh(); }
         catch (err) { a.disabled = false; toast(err.message, true); }
       }
+    });
+    el.addEventListener('keydown', (e) => {
+      const btn = e.target.closest('.score-btn');
+      if (!btn || btn.disabled || !el.contains(btn)) return;
+      const row = btn.closest('.score-row');
+      const btns = Array.from(row.querySelectorAll('.score-btn'));
+      const i = btns.indexOf(btn);
+      let go = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go = btns[Math.min(btns.length - 1, i + 1)];
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go = btns[Math.max(0, i - 1)];
+      else if (e.key === 'Home') go = btns[0];
+      else if (e.key === 'End') go = btns[btns.length - 1];
+      else if (/^[1-5]$/.test(e.key)) go = btns.find((x) => x.dataset.score === e.key);
+      else return;
+      if (!go) return;
+      e.preventDefault();
+      applyScore(go);
+      go.focus();
     });
     el.addEventListener('input', (e) => {
       const t = e.target.closest('textarea'); if (!t || t.readOnly) return;

@@ -111,7 +111,7 @@
   // ---------- criteria ----------
   function renderCriteria(s) {
     const n = s.criteria.length;
-    $('#crit-note').textContent = `Each criterion is scored 1 to 5. With ${n} criteria, each judge's sheet is out of ${5 * n}. A reader's Total is the sum of all judges on the panel. Use ↑ ↓ to reorder.`;
+    $('#crit-note').textContent = `Each criterion is scored 1 to 5. There are ${n} criteria. A reader's Total is the sum of all judges on the panel. Use ↑ ↓ to reorder.`;
     $('#crit-list').innerHTML = s.criteria.map((c, i) => `<li class="critrow"><span class="cn" aria-hidden="true">${i + 1}</span><span class="ct">${esc(c.text)}</span>
       <span><button class="mini" data-cup="${esc(c.id)}" aria-label="Move criterion ${i + 1} up" ${i === 0 ? 'disabled' : ''}>↑</button><button class="mini" data-cdown="${esc(c.id)}" aria-label="Move criterion ${i + 1} down" ${i === n - 1 ? 'disabled' : ''}>↓</button><button class="mini" data-cedit="${esc(c.id)}" aria-label="Edit criterion ${i + 1}">Edit</button><button class="mini danger" data-cdel="${esc(c.id)}" aria-label="Remove criterion ${i + 1}">Remove</button></span></li>`).join('');
     $('#crit-warn').hidden = !s.scores.length;
