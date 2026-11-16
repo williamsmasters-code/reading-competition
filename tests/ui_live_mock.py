@@ -44,7 +44,7 @@ with sync_playwright() as p:
         pg.goto(B + 'index.html'); pg.wait_for_timeout(2000)
         t = pg.inner_text('body')
         ok('EXAMPLE DATA' not in t.upper(), 'live: no demo banner when configured')
-        ok('November 20, 2026' in t and 'Starts' not in t, 'live: banner date, no start time yet (from public_landing RPC)')
+        ok('Thursday, November 19, 2026' in t and 'Starts' not in t, 'live: banner date, no start time yet (from public_landing RPC)')
         login('nobody@mock.test', None); ok('does not have access' in pg.inner_text('#msg'), 'live: no-role account refused at sign-in')
         login('judge1@mock.test', None, 'wrong-pass'); ok('do not match' in pg.inner_text('#msg'), 'live: wrong password message')
         login('judge1@mock.test', 'judge.html'); ok('Mock Judge 1' in pg.inner_text('body'), 'live: judge signed in')

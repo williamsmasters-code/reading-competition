@@ -189,7 +189,7 @@ export async function seed() {
   for (let i = 1; i <= 4; i++) { const id = await mk(`judge${i}@mock.test`, 'judge', 'Mock Judge ' + i); await db.query('insert into public.panel (judge_id, seat) values ($1, $2)', [id, i]); }
   await mk('nobody@mock.test', null, 'No Role Person');
   await db.exec(`insert into public.readers (student_name, school, item, reading_date, round, district, position) values
-    ('Mock Reader One','Dover Gov''t','Just Harriet','2026-11-20','Round 1','ONE',1), ('Mock Reader Two','Harvey Vale Gov''t','Just Harriet','2026-11-20','Round 1','ONE',2)`);
+    ('Mock Reader One','Dover Gov''t','Just Harriet','2026-11-19','Round 1','ONE',1), ('Mock Reader Two','Harvey Vale Gov''t','Just Harriet','2026-11-19','Round 1','ONE',2)`);
 }
 await seed();
 server.listen(PORT, '127.0.0.1', () => console.log('mock supabase on', PORT));

@@ -121,3 +121,68 @@
       }
     });
   })();
+
+  // Event flyer lightbox (one image). Same pattern as the 2025 winner photos: Escape closes, focus is trapped.
+  (function flyerLightbox() {
+    const { $$ } = window.MC;
+    const triggers = $$('[data-flyer-open]');
+    if (!triggers.length) return;
+    const firstImg = triggers[0].querySelector('img');
+    const src = triggers[0].getAttribute('href') || (firstImg && firstImg.getAttribute('src')) || 'assets/flyer/flyer.webp';
+    const alt = (firstImg && firstImg.getAttribute('alt')) ||
+      'Event flyer for the Michelle Coy Reading Competition: Thursday, 19th November 2026, 9:00 a.m., at Our Lady of the Rosary Catholic.';
+    const lb = document.createElement('div');
+    lb.className = 'lb';
+    lb.hidden = true;
+    lb.setAttribute('role', 'dialog');
+    lb.setAttribute('aria-modal', 'true');
+    lb.setAttribute('aria-labelledby', 'flyer-lb-cap');
+    lb.innerHTML = '<button type="button" class="btn ghost lb-close" data-lb="close">Close</button>' +
+      '<img alt="">' +
+      '<p class="lb-cap" id="flyer-lb-cap"></p>';
+    document.body.appendChild(lb);
+    const img = lb.querySelector('img');
+    const cap = lb.querySelector('#flyer-lb-cap');
+    const closeBtn = lb.querySelector('[data-lb=close]');
+    let lastFocus = null;
+    const inertables = () => [document.querySelector('header'), document.querySelector('main'), document.querySelector('footer'), document.querySelector('.demo-bar'), document.querySelector('.a2hs')].filter(Boolean);
+    function focusables() {
+      return $$('button, a[href]', lb).filter((el) => !el.disabled && el.getAttribute('aria-hidden') !== 'true');
+    }
+    function open() {
+      lastFocus = document.activeElement;
+      img.src = src;
+      img.alt = alt;
+      cap.textContent = alt;
+      lb.hidden = false;
+      inertables().forEach((el) => el.setAttribute('inert', ''));
+      closeBtn.focus();
+    }
+    function close() {
+      if (lb.hidden) return;
+      lb.hidden = true;
+      inertables().forEach((el) => el.removeAttribute('inert'));
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-flyer-open]');
+      if (!t) return;
+      e.preventDefault();
+      open();
+    });
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb || e.target.closest('[data-lb=close]')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (lb.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key === 'Tab') {
+        const f = focusables();
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        else if (!lb.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      }
+    });
+  })();

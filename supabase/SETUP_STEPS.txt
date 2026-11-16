@@ -1,7 +1,7 @@
 MICHELLE COY READING COMPETITION - SETUP STEPS (going live)
 ===========================================================
 Nothing below has been done yet. Each step that touches Supabase or GitHub needs
-Daniel's OK first. Do them in this order. Competition day: Friday, November 20, 2026.
+Daniel's OK first. Do them in this order. Competition day: Thursday, November 19, 2026.
 
 BEFORE YOU START
 - Supabase free plan: 2 active projects per account. Carriacou Connect already uses one,
@@ -79,7 +79,7 @@ BEFORE YOU START
       (config.js itself is never committed).
 
 8. SMOKE TEST ON THE LIVE SITE
-   - Landing page loads, shows "2026 Competition: November 20, 2026", no EXAMPLE DATA bar.
+   - Landing page loads, shows "2026 Competition: Thursday, November 19, 2026", no EXAMPLE DATA bar.
    - Sign in as each role once and change the temporary password (top bar).
    - Head Judge: set the start time; check it shows on the landing page.
    - Do not open or score real readers before the day: the live site has no "reset"

@@ -31,6 +31,55 @@ a{color:var(--green);font-weight:700}
 .banner .when{margin-top:.5rem;font-weight:900;font-size:1.05rem;color:var(--ink)}
 .nav{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:.9rem}
 
+/* Event flyer in the landing hero (Option A) */
+.flyer-link{
+  display:block;
+  margin:0 auto;
+  border-radius:1rem;
+  overflow:hidden;
+  border:3px solid var(--line);
+  background:#fff;
+  box-shadow:0 6px 0 rgba(202,160,60,.25);
+  line-height:0;
+  max-width:100%;
+}
+.flyer-link:focus-visible{outline-offset:4px}
+.flyer-link img{display:block;width:100%;height:auto}
+.banner-with-flyer{padding-bottom:1.25rem}
+.banner-with-flyer .hero-inner{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1.1rem;
+  max-width:1100px;
+  margin:0 auto;
+}
+.banner-with-flyer .hero-copy{width:100%}
+.banner-with-flyer .hero-flyer{width:100%;max-width:18.5rem}
+.banner-with-flyer .hero-flyer .flyer-link{width:100%}
+.banner-with-flyer .hint{
+  margin-top:.45rem;
+  font-size:.78rem;
+  font-weight:800;
+  color:#5A3A1A;
+}
+@media(min-width:600px) and (max-width:1023px){
+  .banner-with-flyer .hero-flyer{max-width:22rem}
+}
+@media(min-width:1024px){
+  .banner-with-flyer .hero-inner{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(16rem,22rem);
+    gap:1.25rem 2rem;
+    align-items:center;
+    text-align:left;
+  }
+  .banner-with-flyer .hero-copy{text-align:left}
+  .banner-with-flyer .nav{justify-content:flex-start}
+  .banner-with-flyer .hero-flyer{max-width:22rem;width:100%;justify-self:end}
+  .banner-with-flyer .logo-mark{font-size:2.6rem}
+}
+
 /* buttons */
 .nav a,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:48px;padding:.65rem 1.1rem;border-radius:999px;background:var(--green);color:#fff;text-decoration:none;border:3px solid #005A2C;font-weight:800;font-size:1rem;box-shadow:0 3px 0 #005A2C;font-family:inherit;cursor:pointer;line-height:1.2;text-align:center}
 .btn.alt,.btn.danger{background:var(--red);border-color:#9A0C1C;box-shadow:0 3px 0 #9A0C1C;color:#fff}

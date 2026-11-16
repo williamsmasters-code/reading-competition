@@ -33,10 +33,12 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  function fmtDate(iso) { // 'YYYY-MM-DD' -> 'November 20, 2026' (no time zone shifting)
+  const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function fmtDate(iso) { // 'YYYY-MM-DD' -> 'Thursday, November 19, 2026' (no time zone shifting)
     if (!iso) return '';
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso)); if (!m) return String(iso);
-    return MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1];
+    const wd = WEEKDAYS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+    return wd + ', ' + MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1];
   }
   function fmtTime(hhmm) { // '09:00' -> '9:00 AM'
     if (!hhmm) return '';

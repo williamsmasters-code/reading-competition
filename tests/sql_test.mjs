@@ -52,7 +52,7 @@ await as('anon', async () => {
   ok(!!(await err(() => q('select * from finalization'))), 'anon cannot read finalization');
   ok(!!(await err(() => q("select save_scores('00000000-0000-0000-0000-000000000000'::uuid,'[]')"))), 'anon cannot call save_scores');
   const pl = (await q('select public_landing() v'))[0].v;
-  ok(pl.published === false && pl.results.length === 0 && pl.event_date === '2026-11-20' && pl.start_time === null, 'anon public_landing(): date, no start time, no results ' + JSON.stringify(pl));
+  ok(pl.published === false && pl.results.length === 0 && pl.event_date === '2026-11-19' && pl.start_time === null, 'anon public_landing(): date, no start time, no results ' + JSON.stringify(pl));
 });
 // no-role account
 await as(SIGNUP, async () => {

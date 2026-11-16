@@ -85,7 +85,7 @@ create table if not exists public.sheets (
 -- ---------- event settings (single row) ----------
 create table if not exists public.event_settings (
   id          smallint primary key default 1 check (id = 1),
-  event_date  date not null default date '2026-11-20',
+  event_date  date not null default date '2026-11-19',
   start_time  time,                          -- Grenada time (AST). NULL = not set, banner shows the date only
   updated_at  timestamptz not null default now(),
   updated_by  uuid references public.profiles(id) on delete set null
@@ -220,7 +220,7 @@ create trigger t_profiles_guard before update on public.profiles for each row ex
 -- =====================================================================
 -- Default data (no personal information)
 -- =====================================================================
-insert into public.event_settings (id, event_date) values (1, date '2026-11-20') on conflict (id) do nothing;
+insert into public.event_settings (id, event_date) values (1, date '2026-11-19') on conflict (id) do nothing;
 insert into public.finalization (id, status) values (1, 'open') on conflict (id) do nothing;
 
 -- The 10 criteria, verbatim from the score sheet (Judge1 Readers.xlsx). Only inserted when the table is empty.

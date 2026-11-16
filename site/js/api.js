@@ -65,7 +65,7 @@
           q('items', '*', 'position'), q('rounds', '*', 'number'), q('districts', '*', 'position')
         ]);
         [profiles, panel, readers, criteria, scores, sheets, event, fin, reqs, photos, items, rounds, districts].forEach((r) => { if (r.error) throw new Error(friendly(r.error)); });
-        const ev = event.data || { event_date: '2026-11-20', start_time: null };
+        const ev = event.data || { event_date: '2026-11-19', start_time: null };
         return {
           me, profiles: profiles.data, panel: panel.data, readers: readers.data, criteria: criteria.data,
           scores: scores.data, sheets: sheets.data,
@@ -193,7 +193,7 @@
       const panel = [{ judge_id: 'u-head', seat: 0 }, { judge_id: 'u-j1', seat: 1 }, { judge_id: 'u-j2', seat: 2 }, { judge_id: 'u-j3', seat: 3 }, { judge_id: 'u-j4', seat: 4 }];
       const schools = [["Example Reader A", "Mt Pleasant Gov't", 4.2], ["Example Reader B", "Dover Gov't", 3.8], ["Example Reader C", "Hillsborough Gov't", 4.7],
         ["Example Reader D", "Harvey Vale Gov't", 3.7], ["Example Reader E", "St Thomas Aquinas Catholic", 3.1], ["Example Reader F", "Our Lady of the Rosary Catholic", 4.55]];
-      const readers = schools.map((s, i) => ({ id: 'r' + (i + 1), position: i + 1, student_name: s[0], school: s[1], reading_date: '2026-11-20', round_no: 1, district_id: 'd1', item_id: null, judging_status: 'not_opened', _q: s[2] }));
+      const readers = schools.map((s, i) => ({ id: 'r' + (i + 1), position: i + 1, student_name: s[0], school: s[1], reading_date: '2026-11-19', round_no: 1, district_id: 'd1', item_id: null, judging_status: 'not_opened', _q: s[2] }));
       const items = [{ id: 'i1', title: 'Just Harriet', position: 1 }, { id: 'i2', title: 'EXAMPLE: The Kite Festival', position: 2 }];
       const rounds = [{ number: 1, name: '', default_item_id: 'i1' }];
       const districts = [{ id: 'd1', name: 'ONE', position: 1 }];
@@ -215,7 +215,7 @@
       }
       readers.forEach((r) => { delete r._q; });
       const st = { v: 2, scenario: scenario || 'mid', profiles, panel, readers, criteria, scores, sheets, items, rounds, districts,
-        event: { event_date: '2026-11-20', start_time: '09:00' }, final: fin, requests: [], photos: [], audit: [] };
+        event: { event_date: '2026-11-19', start_time: '09:00' }, final: fin, requests: [], photos: [], audit: [] };
       relabel(st);
       if (scenario === 'posted') publish(st, 'u-head');
       return st;
